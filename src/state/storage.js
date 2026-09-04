@@ -278,3 +278,25 @@ export async function clearAll() {
   }
   await withStore("readwrite", (store) => store.clear());
 }
+
+/**
+ * Checks that photo storage actually works here before the user relies on it.
+ *
+ * Chrome refuses IndexedDB on `file://` origins, so a build opened by
+ * double-clicking would accept a photo, fail to store it, and only say so
+ * after the fact. Better to know on arrival.
+ */
+export async function checkStorageAvailable() {
+  try {
+    await openDb();
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      reason:
+        location.protocol === "file:"
+          ? "Browsers block photo storage for pages opened directly from a file. Serve this page over http:// or https:// — for example with `npm run dev` — and photos will save normally."
+          : `Photo storage is unavailable in this browser: ${err.message}`,
+    };
+  }
+}

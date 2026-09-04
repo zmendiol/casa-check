@@ -1,4 +1,5 @@
 import { Sidebar } from "./components/Sidebar.jsx";
+import { StorageWarning } from "./components/StorageWarning.jsx";
 import { CompareRooms } from "./steps/CompareRooms.jsx";
 import { GenerateReport } from "./steps/GenerateReport.jsx";
 import { PhotoWalkthrough } from "./steps/PhotoWalkthrough.jsx";
@@ -24,6 +25,7 @@ export function App() {
       <Sidebar />
       <main className="main">
         <div className="content">
+          <StorageWarning />
           <Screen />
         </div>
       </main>

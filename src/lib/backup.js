@@ -11,6 +11,7 @@
 
 import { MODE_KEYS } from "./constants.js";
 import { blobToDataUrl } from "./images.js";
+import { saveFile } from "./download.js";
 import { dataUrlToBlob, getPhotoBlob, putPhotoBlob } from "../state/storage.js";
 
 const FORMAT = "casa-check-backup";
@@ -70,9 +71,9 @@ export async function exportBackup(record, onProgress = () => {}) {
 
   const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
   const filename = `casa-check-backup-${new Date().toISOString().slice(0, 10)}.json`;
-  triggerDownload(blob, filename);
+  const { status } = await saveFile(filename, blob);
 
-  return { filename, photoCount: total, missing: missing.length };
+  return { filename, photoCount: total, missing: missing.length, status };
 }
 
 /**
@@ -134,14 +135,3 @@ export async function importBackup(file) {
   };
 }
 
-function triggerDownload(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  // Revoking immediately can cancel the download in some browsers.
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
-}

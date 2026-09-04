@@ -46,9 +46,13 @@ export function DataPanel() {
     setBusy(true);
     setStatus({ tone: "muted", message: "Packaging photos…" });
     try {
-      const { filename, missing } = await exportBackup(record, ({ done, total: n }) =>
+      const { filename, missing, status: saveStatus } = await exportBackup(record, ({ done, total: n }) =>
         setStatus({ tone: "muted", message: `Packaging photo ${done} of ${n}…` })
       );
+      if (saveStatus === "declined") {
+        setStatus({ tone: "muted", message: "Save cancelled — no backup was written." });
+        return;
+      }
       setStatus({
         tone: missing > 0 ? "error" : "success",
         message:

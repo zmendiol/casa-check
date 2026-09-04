@@ -33,11 +33,16 @@ export function GenerateReport() {
     setStatus({ tone: "muted", message: "Preparing report…" });
 
     try {
-      const { filename, failed } = await generateReport(
+      const { filename, failed, status } = await generateReport(
         { property: state.property, rooms: state.rooms },
         ({ done, total, label }) =>
           setStatus({ tone: "muted", message: `Adding photo ${done} of ${total} — ${label}` })
       );
+
+      if (status === "declined") {
+        setStatus({ tone: "muted", message: "Save cancelled — the report was not downloaded." });
+        return;
+      }
 
       // The original swallowed embedding errors, so photos could vanish from a
       // report with no indication. Say so instead.

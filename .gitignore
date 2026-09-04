@@ -8,3 +8,5 @@ dist/
 casa-check-report*.pdf
 casa-check-*.pdf
 casa-check-backup-*.json
+
+dist-single/

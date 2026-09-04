@@ -388,3 +388,18 @@
   padding-top: 12px;
   border-top: 1px solid var(--line-soft);
 }
+
+/* Shown when photo storage is unavailable (e.g. opened from a file:// path). */
+.storage-warning {
+  background: #FDF3E3;
+  border: 1px solid var(--amber);
+  border-left: 3px solid var(--amber);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 22px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink);
+  max-width: 70ch;
+}
+.storage-warning strong { display: block; margin-bottom: 2px; }

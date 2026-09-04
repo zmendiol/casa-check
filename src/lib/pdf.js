@@ -1,4 +1,5 @@
 import { MODE_KEYS } from "./constants.js";
+import { saveFile } from "./download.js";
 import { blobToDataUrl, TIMESTAMP_SOURCES } from "./images.js";
 import { getPhotoBlob } from "../state/storage.js";
 
@@ -195,8 +196,8 @@ export async function generateReport(record, onProgress = () => {}) {
   stampPageNumbers(doc, pageW, pageH);
 
   const filename = buildFilename(property);
-  doc.save(filename);
-  return { filename, failed };
+  const { status } = await saveFile(filename, doc.output("blob"));
+  return { filename, failed, status };
 }
 
 /* ------------------------------------------------------------------ */
