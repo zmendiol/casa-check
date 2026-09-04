@@ -1,0 +1,141 @@
+/* App shell: dark sidebar + content column, and the mobile reflow. */
+
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ---------- Sidebar ---------- */
+
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  background: var(--sidebar);
+  padding: 26px 20px;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.brand {
+  font-family: var(--font-display);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.brand svg { flex-shrink: 0; }
+
+.brand-sub {
+  font-size: 12px;
+  color: var(--sidebar-text);
+  margin: 8px 0 28px 0;
+  line-height: 1.5;
+}
+
+.steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.step-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-left: 2px solid transparent;
+  padding: 10px 11px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sidebar-text);
+}
+.step-btn:hover { color: #fff; }
+.step-btn.active {
+  color: #fff;
+  border-left-color: var(--teal);
+  background: var(--teal-tint);
+}
+.step-btn svg { flex-shrink: 0; opacity: 0.85; }
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 18px;
+  border-top: 1px solid var(--sidebar-line);
+  font-size: 11px;
+  color: var(--sidebar-muted);
+  line-height: 1.6;
+}
+
+/* ---------- Main column ---------- */
+
+.main {
+  flex: 1;
+  min-width: 0;
+  padding: 40px 44px 80px;
+}
+
+.content { max-width: 900px; }
+
+/* ---------- Mobile ----------
+   Photographing a room happens on a phone, so below 720px the sidebar
+   becomes a compact top bar and the step list scrolls horizontally.
+   Colors, type, and the teal active marker are unchanged; only the
+   orientation of the marker moves from the left edge to the bottom. */
+
+@media (max-width: 720px) {
+  .app { flex-direction: column; }
+
+  .sidebar {
+    width: 100%;
+    height: auto;
+    padding: 14px 16px 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .brand { font-size: 16px; }
+  .brand-sub { display: none; }
+
+  .steps {
+    flex-direction: row;
+    gap: 2px;
+    margin-top: 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .steps::-webkit-scrollbar { display: none; }
+
+  .step-btn {
+    width: auto;
+    white-space: nowrap;
+    border-left: none;
+    border-bottom: 2px solid transparent;
+    padding: 8px 10px;
+  }
+  .step-btn.active {
+    border-left-color: transparent;
+    border-bottom-color: var(--teal);
+  }
+  /* Icons alone would be ambiguous; keep labels, drop the glyphs for room. */
+  .step-btn svg { display: none; }
+
+  .sidebar-footer { display: none; }
+
+  .main { padding: 24px 18px 64px; }
+  .page-title { font-size: 21px; }
+}

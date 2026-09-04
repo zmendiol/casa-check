@@ -1,0 +1,47 @@
+/* Design tokens — the single source of truth for the Casa Check palette.
+   Values carried over verbatim from the original prototype; the additions at
+   the bottom are colors that used to be hardcoded in a dozen places. */
+
+:root {
+  /* Surfaces & text */
+  --ink: #12141A;
+  --paper: #FAFAF8;
+  --card: #FFFFFF;
+  --muted: #6B6F76;
+
+  /* Brand */
+  --teal: #0E6B5C;
+  --teal-dark: #0A5147;
+  --amber: #D98E2B;
+
+  /* Borders */
+  --line: #E5E3DC;
+  --line-soft: #EFEDE6;
+
+  /* Dark sidebar */
+  --sidebar: #14161C;
+  --sidebar-line: #26292F;
+  --sidebar-text: #B7BAC2;
+
+  /* --- Previously inlined, now named --- */
+  --amber-dark: #BF7A1F;
+  --danger: #C0392B;
+  --sidebar-muted: #5A5E67;
+  --panel-text: #E4E6EA;
+
+  /* Teal at low opacity, used for the active nav tint and focus rings */
+  --teal-tint: rgba(14, 107, 92, 0.14);
+  --teal-ring: rgba(14, 107, 92, 0.12);
+
+  --scrim: rgba(18, 20, 26, 0.72);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+
+  /* Type */
+  --font-display: "Manrope", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+
+  /* Layout */
+  --sidebar-w: 222px;
+  --radius: 6px;
+  --radius-lg: 10px;
+}
