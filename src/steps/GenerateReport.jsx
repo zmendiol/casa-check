@@ -1,6 +1,23 @@
 import { useState } from "react";
+import { DataPanel } from "../components/DataPanel.jsx";
+import { MODE_KEYS } from "../lib/constants.js";
 import { generateReport } from "../lib/pdf.js";
 import { countPhotos, useStore } from "../state/store.jsx";
+
+/** How many photos carry a camera-recorded time vs. a weaker one. */
+function countProvenance(rooms) {
+  let camera = 0;
+  let weak = 0;
+  for (const room of rooms) {
+    for (const mode of MODE_KEYS) {
+      for (const photo of room[mode]) {
+        if (photo.timestampSource === "camera") camera += 1;
+        else weak += 1;
+      }
+    }
+  }
+  return { camera, weak };
+}
 
 export function GenerateReport() {
   const { state } = useStore();
@@ -9,6 +26,7 @@ export function GenerateReport() {
 
   const totalPhotos = countPhotos(state.rooms);
   const summary = state.property.communityName || state.property.address || "No property set yet";
+  const { weak } = countProvenance(state.rooms);
 
   async function handleGenerate() {
     setBusy(true);
@@ -71,12 +89,25 @@ export function GenerateReport() {
         </p>
       </div>
 
+      {/* Provenance is the difference between evidence and an assertion, so say
+          plainly when some timestamps are weaker than others. */}
+      {weak > 0 && (
+        <p className="status-line" data-tone="muted" style={{ marginTop: 14 }}>
+          {weak} of {totalPhotos} photo{totalPhotos === 1 ? "" : "s"}{weak === 1 ? " has" : " have"}{" "}
+          no camera timestamp, so the report will show when it was added here instead of when it was
+          taken. Photos straight from a phone camera normally carry their own date.
+        </p>
+      )}
+
       {state.property.rules && (
         <>
           <div className="section-label">Property rules on file</div>
           <div className="rules-preview">{state.property.rules}</div>
         </>
       )}
+
+      <div className="section-label">Backup &amp; data</div>
+      <DataPanel />
     </>
   );
 }

@@ -1,4 +1,5 @@
 import { usePhotoUrl } from "../hooks/usePhotoUrl.js";
+import { TIMESTAMP_SOURCES } from "../lib/images.js";
 
 const FULL_STAMP = { dateStyle: "medium", timeStyle: "short" };
 
@@ -12,17 +13,30 @@ function stamp(timestamp, options) {
  * One photo in a grid.
  *
  * `editable` adds the delete button and the note field; the compare view
- * renders the same tile read-only.
+ * renders the same tile read-only. Either way the image opens full size.
  */
-export function PhotoTile({ photo, roomName, editable = false, onDelete, onNoteChange }) {
+export function PhotoTile({ photo, roomName, editable = false, onOpen, onDelete, onNoteChange }) {
   const url = usePhotoUrl(photo.id);
+
+  // A timestamp taken straight from the camera needs no qualifier. A weaker
+  // one does — better the renter knows before a landlord points it out.
+  const source = photo.timestampSource || "upload";
+  const qualifier = source === "camera" ? null : TIMESTAMP_SOURCES[source]?.short;
+
+  const image = url ? (
+    <img src={url} alt={`${roomName} condition photo taken ${stamp(photo.timestamp)}`} />
+  ) : (
+    <div className="photo-loading" aria-label="Loading photo" />
+  );
 
   return (
     <div className="photo-tile">
-      {url ? (
-        <img src={url} alt={`${roomName} condition photo taken ${stamp(photo.timestamp)}`} />
+      {onOpen ? (
+        <button type="button" className="photo-open" onClick={onOpen} aria-label="View full size">
+          {image}
+        </button>
       ) : (
-        <div className="photo-loading" aria-label="Loading photo" />
+        image
       )}
 
       {editable && (
@@ -39,6 +53,7 @@ export function PhotoTile({ photo, roomName, editable = false, onDelete, onNoteC
 
       <div className="photo-meta">
         {editable ? stamp(photo.timestamp, FULL_STAMP) : stamp(photo.timestamp)}
+        {qualifier && <span className="photo-source"> · {qualifier}</span>}
       </div>
 
       {editable ? (

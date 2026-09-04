@@ -1,9 +1,14 @@
+import { useState } from "react";
 import { PhotoTile } from "../components/PhotoTile.jsx";
+import { PhotoViewer } from "../components/PhotoViewer.jsx";
 import { MODES, MODE_KEYS } from "../lib/constants.js";
 import { useStore } from "../state/store.jsx";
 
 export function CompareRooms() {
   const { state } = useStore();
+  // { photos, index, roomName } — comparing at thumbnail size is guesswork,
+  // so this screen opens full size too.
+  const [viewing, setViewing] = useState(null);
 
   return (
     <>
@@ -23,8 +28,19 @@ export function CompareRooms() {
                   </h4>
                   {photos.length > 0 ? (
                     <div className="photo-grid">
-                      {photos.map((photo) => (
-                        <PhotoTile key={photo.id} photo={photo} roomName={room.name} />
+                      {photos.map((photo, index) => (
+                        <PhotoTile
+                          key={photo.id}
+                          photo={photo}
+                          roomName={`${room.name} — ${MODES[mode].label}`}
+                          onOpen={() =>
+                            setViewing({
+                              photos,
+                              index,
+                              roomName: `${room.name} — ${MODES[mode].label}`,
+                            })
+                          }
+                        />
                       ))}
                     </div>
                   ) : (
@@ -36,6 +52,16 @@ export function CompareRooms() {
           </div>
         </section>
       ))}
+
+      {viewing && (
+        <PhotoViewer
+          photos={viewing.photos}
+          index={viewing.index}
+          roomName={viewing.roomName}
+          onIndexChange={(index) => setViewing((v) => ({ ...v, index }))}
+          onClose={() => setViewing(null)}
+        />
+      )}
     </>
   );
 }

@@ -1,3 +1,4 @@
+import { readCaptureTime } from "./exif.js";
 import { MAX_PHOTO_EDGE, PHOTO_QUALITY } from "./constants.js";
 
 /**
@@ -101,3 +102,42 @@ export function blobToDataUrl(blob) {
     reader.readAsDataURL(blob);
   });
 }
+
+/**
+ * Works out when a photo was actually taken, and says how confident that is.
+ *
+ * Order of preference:
+ *   camera  - EXIF DateTimeOriginal, written by the device at capture
+ *   file    - the file's own modified date, when it clearly predates upload
+ *   upload  - fallback: the moment it was added here
+ *
+ * The source travels with the photo so the PDF can state it plainly rather
+ * than implying a precision the data doesn't have.
+ */
+export async function resolveCaptureTime(file) {
+  const exif = await readCaptureTime(file);
+  if (exif) {
+    return { timestamp: exif.date.toISOString(), timestampSource: "camera" };
+  }
+
+  // A photo picked from the gallery usually keeps its original file date; one
+  // taken through the camera button has a date of "just now", which tells us
+  // nothing extra, so only treat a clearly older date as meaningful.
+  const modified = file.lastModified;
+  if (modified && Number.isFinite(modified)) {
+    const age = Date.now() - modified;
+    const date = new Date(modified);
+    if (age > 2 * 60 * 1000 && date.getFullYear() >= 1995) {
+      return { timestamp: date.toISOString(), timestampSource: "file" };
+    }
+  }
+
+  return { timestamp: new Date().toISOString(), timestampSource: "upload" };
+}
+
+/** Human-readable provenance, used in the UI and the PDF. */
+export const TIMESTAMP_SOURCES = {
+  camera: { short: "from camera", long: "recorded by the camera at capture" },
+  file: { short: "file date", long: "taken from the photo file's own date" },
+  upload: { short: "added here", long: "the time the photo was added to Casa Check" },
+};

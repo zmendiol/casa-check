@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PhotoTile } from "./PhotoTile.jsx";
-import { compressImage } from "../lib/images.js";
+import { PhotoViewer } from "./PhotoViewer.jsx";
+import { compressImage, resolveCaptureTime } from "../lib/images.js";
 import { uid } from "../lib/uid.js";
 import { deletePhotoBlob, putPhotoBlob } from "../state/storage.js";
 import { useStore } from "../state/store.jsx";
@@ -8,35 +9,64 @@ import { useStore } from "../state/store.jsx";
 export function RoomCard({ room, mode, canRemove }) {
   const { dispatch } = useStore();
   const [renaming, setRenaming] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState(null); // { done, total }
   const [error, setError] = useState(null);
+  const [viewing, setViewing] = useState(null); // index into photos
 
   const photos = room[mode];
+  const busy = progress !== null;
 
-  async function handleFile(event) {
+  async function handleFiles(event) {
     const input = event.target;
-    const file = input.files?.[0];
+    const files = Array.from(input.files || []);
     // Reset immediately so picking the same file twice still fires a change
     // event — in the original, re-adding a deleted photo silently did nothing.
     input.value = "";
-    if (!file) return;
+    if (files.length === 0) return;
 
-    setBusy(true);
     setError(null);
-    try {
-      const blob = await compressImage(file);
-      const photo = { id: uid(), timestamp: new Date().toISOString(), note: "" };
-      await putPhotoBlob(photo.id, blob);
-      dispatch({ type: "ADD_PHOTO", roomId: room.id, mode, photo });
-    } catch (err) {
-      setError(err.message || "That photo could not be added.");
-    } finally {
-      setBusy(false);
+    const failures = [];
+
+    // Sequential rather than parallel: decoding several full-resolution photos
+    // at once is a good way to make a phone run out of memory mid-walkthrough.
+    for (let i = 0; i < files.length; i += 1) {
+      setProgress({ done: i + 1, total: files.length });
+      const file = files[i];
+      try {
+        const [blob, when] = await Promise.all([
+          compressImage(file),
+          resolveCaptureTime(file),
+        ]);
+        const photo = {
+          id: uid(),
+          timestamp: when.timestamp,
+          timestampSource: when.timestampSource,
+          note: "",
+        };
+        await putPhotoBlob(photo.id, blob);
+        dispatch({ type: "ADD_PHOTO", roomId: room.id, mode, photo });
+      } catch (err) {
+        failures.push(`${file.name}: ${err.message}`);
+      }
+    }
+
+    setProgress(null);
+    if (failures.length > 0) {
+      setError(
+        failures.length === 1
+          ? failures[0]
+          : `${failures.length} photos could not be added. ${failures[0]}`
+      );
     }
   }
 
   async function handleDelete(photo) {
+    // Photos are the whole point of the record, so deleting one asks first.
+    const stamp = new Date(photo.timestamp).toLocaleString();
+    if (!window.confirm(`Delete this photo from ${room.name}?\n\nTaken ${stamp}.`)) return;
+
     dispatch({ type: "REMOVE_PHOTO", roomId: room.id, mode, photoId: photo.id });
+    setViewing(null);
     try {
       await deletePhotoBlob(photo.id);
     } catch (err) {
@@ -45,8 +75,9 @@ export function RoomCard({ room, mode, canRemove }) {
   }
 
   async function handleRemoveRoom() {
-    const confirmed = window.confirm(`Remove "${room.name}" and all its photos?`);
-    if (!confirmed) return;
+    const count = room.moveIn.length + room.moveOut.length;
+    const detail = count > 0 ? ` and all ${count} of its photos` : "";
+    if (!window.confirm(`Remove "${room.name}"${detail}?`)) return;
 
     dispatch({ type: "REMOVE_ROOM", roomId: room.id });
     const ids = [...room.moveIn, ...room.moveOut].map((p) => p.id);
@@ -108,12 +139,13 @@ export function RoomCard({ room, mode, canRemove }) {
 
       {photos.length > 0 && (
         <div className="photo-grid">
-          {photos.map((photo) => (
+          {photos.map((photo, index) => (
             <PhotoTile
               key={photo.id}
               photo={photo}
               roomName={room.name}
               editable
+              onOpen={() => setViewing(index)}
               onDelete={() => handleDelete(photo)}
               onNoteChange={(note) =>
                 dispatch({ type: "SET_PHOTO_NOTE", roomId: room.id, mode, photoId: photo.id, note })
@@ -124,13 +156,13 @@ export function RoomCard({ room, mode, canRemove }) {
       )}
 
       <label className="btn btn-ghost" style={{ cursor: busy ? "default" : "pointer" }}>
-        {busy ? "Adding…" : "+ Add photo"}
+        {busy ? `Adding ${progress.done} of ${progress.total}…` : "+ Add photos"}
         <input
           type="file"
           accept="image/*"
-          capture="environment"
+          multiple
           disabled={busy}
-          onChange={handleFile}
+          onChange={handleFiles}
         />
       </label>
 
@@ -138,6 +170,16 @@ export function RoomCard({ room, mode, canRemove }) {
         <p className="status-line" data-tone="error" role="alert">
           {error}
         </p>
+      )}
+
+      {viewing !== null && photos[viewing] && (
+        <PhotoViewer
+          photos={photos}
+          index={viewing}
+          roomName={room.name}
+          onIndexChange={setViewing}
+          onClose={() => setViewing(null)}
+        />
       )}
     </section>
   );

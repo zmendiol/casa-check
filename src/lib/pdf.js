@@ -1,5 +1,5 @@
 import { MODE_KEYS } from "./constants.js";
-import { blobToDataUrl } from "./images.js";
+import { blobToDataUrl, TIMESTAMP_SOURCES } from "./images.js";
 import { getPhotoBlob } from "../state/storage.js";
 
 const MARGIN = 48;
@@ -145,8 +145,10 @@ export async function generateReport(record, onProgress = () => {}) {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       const stamp = formatStamp(photo.timestamp);
+      const provenance = (TIMESTAMP_SOURCES[photo.timestampSource] || TIMESTAMP_SOURCES.upload).long;
       const noteLines = photo.note ? doc.splitTextToSize(photo.note, textW) : [];
-      const textH = 16 + (noteLines.length ? noteLines.length * 11 + 8 : 0);
+      // 12pt for the stamp, 16pt for the provenance line beneath it.
+      const textH = 28 + (noteLines.length ? noteLines.length * 11 + 8 : 0);
 
       // Advance by whichever column is taller. The original always advanced by
       // the image height, so a long note overlapped the next photo.
@@ -170,7 +172,12 @@ export async function generateReport(record, onProgress = () => {}) {
 
       doc.setFontSize(9);
       doc.text(stamp, textX, y + 12, { maxWidth: textW });
-      if (noteLines.length) doc.text(noteLines, textX, y + 30);
+      // State where the time came from. A timestamp whose provenance is
+      // unstated is easy for a landlord to wave away.
+      doc.setFontSize(7.5);
+      doc.text(provenance, textX, y + 23, { maxWidth: textW });
+      doc.setFontSize(9);
+      if (noteLines.length) doc.text(noteLines, textX, y + 40);
 
       y += rowH + ROW_GAP;
     }

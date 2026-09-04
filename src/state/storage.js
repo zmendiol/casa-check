@@ -228,3 +228,53 @@ export async function pruneOrphanPhotos(rooms) {
     return 0;
   }
 }
+
+/* ------------------------------------------------------------------ *
+ * Durability
+ * ------------------------------------------------------------------ */
+
+/**
+ * Asks the browser to treat this origin's data as persistent.
+ *
+ * Without this, IndexedDB is "best effort": a browser under storage pressure
+ * may evict it with no warning and no recourse. For a record someone may need
+ * months later at a deposit dispute, best-effort is the wrong default.
+ *
+ * Chrome usually grants this silently for installed or frequently visited
+ * sites; Firefox prompts. A refusal is not an error worth interrupting for.
+ */
+export async function requestPersistentStorage() {
+  try {
+    if (!navigator.storage?.persist) return { supported: false, persisted: false };
+    if (await navigator.storage.persisted()) return { supported: true, persisted: true };
+    return { supported: true, persisted: await navigator.storage.persist() };
+  } catch {
+    return { supported: false, persisted: false };
+  }
+}
+
+/** Bytes used and available, when the browser will say. */
+export async function estimateUsage() {
+  try {
+    if (!navigator.storage?.estimate) return null;
+    const { usage, quota } = await navigator.storage.estimate();
+    if (usage == null) return null;
+    return { usage, quota: quota ?? null };
+  } catch {
+    return null;
+  }
+}
+
+/** Wipes the record, the UI state, and every stored photo. */
+export async function clearAll() {
+  for (const url of urlCache.values()) URL.revokeObjectURL(url);
+  urlCache.clear();
+  try {
+    localStorage.removeItem(RECORD_KEY);
+    localStorage.removeItem(UI_KEY);
+    localStorage.removeItem(LEGACY_KEY);
+  } catch {
+    /* no-op */
+  }
+  await withStore("readwrite", (store) => store.clear());
+}

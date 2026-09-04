@@ -7,6 +7,7 @@ import {
   loadRecord,
   loadUi,
   pruneOrphanPhotos,
+  requestPersistentStorage,
   putPhotoBlob,
   saveRecord,
   saveUi,
@@ -17,7 +18,9 @@ import {
  *
  * property : cover-page details
  * rooms    : [{ id, name, moveIn: [photo], moveOut: [photo] }]
- * photo    : { id, timestamp, note }   <- bytes live in IndexedDB under id
+ * photo    : { id, timestamp, timestampSource, note }
+ *            bytes live in IndexedDB under id; timestampSource records where
+ *            the timestamp came from (camera EXIF / file date / upload time)
  * ------------------------------------------------------------------ */
 
 const EMPTY_PROPERTY = {
@@ -58,6 +61,7 @@ function normalize(record) {
       next[mode] = (Array.isArray(room[mode]) ? room[mode] : []).map((photo) => ({
         id: photo.id || uid(),
         timestamp: photo.timestamp || new Date().toISOString(),
+        timestampSource: photo.timestampSource || "upload",
         note: photo.note || "",
         // Present only on records from the pre-IndexedDB build.
         ...(photo.dataUrl ? { legacyDataUrl: photo.dataUrl } : {}),
@@ -138,6 +142,12 @@ export function reducer(state, action) {
         }),
       };
 
+    /* Wholesale replacement, used when restoring a backup. */
+    case "REPLACE_RECORD": {
+      const { property, rooms } = normalize(action.record);
+      return { ...state, property, rooms };
+    }
+
     case "RESET":
       return { property: { ...EMPTY_PROPERTY }, rooms: defaultRooms(), step: "setup", mode: "moveIn" };
 
@@ -212,6 +222,13 @@ export function StoreProvider({ children }) {
       }
 
       await pruneOrphanPhotos(state.rooms);
+
+      // Ask the browser not to evict this data under storage pressure. A
+      // deposit dispute can surface months after move-out.
+      const persistence = await requestPersistentStorage();
+      if (persistence.supported && !persistence.persisted) {
+        console.info("Storage is not marked persistent; the browser may evict photos under pressure.");
+      }
     })();
     // Intentionally mount-only; `state.rooms` is read once as a starting point.
     // The ref guard keeps StrictMode's double-invoke from running it twice.
