@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Casa Check — Move-In/Move-Out Documentation for College Renters</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#12141A;
+    --paper:#FAFAF8;
+    --card:#FFFFFF;
+    --teal:#0E6B5C;
+    --teal-dark:#0A5147;
+    --amber:#D98E2B;
+    --line:#E5E3DC;
+    --line-soft:#EFEDE6;
+    --muted:#6B6F76;
+    --sidebar:#14161C;
+    --sidebar-line:#26292F;
+    --sidebar-text:#B7BAC2;
+  }
+  *{box-sizing:border-box;}
+  html,body{ margin:0; overflow-x:hidden; }
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.brand{ font-family:'Manrope', sans-serif; }
+  p{ max-width:64ch; }
+  .app{ display:flex; min-height:100vh; }
+
+  .sidebar{
+    width:222px;
+    flex-shrink:0;
+    background:var(--sidebar);
+    padding:26px 20px;
+    display:flex;
+    flex-direction:column;
+    position:sticky;
+    top:0;
+    height:100vh;
+  }
+  .brand{
+    color:#fff;
+    font-size:18px;
+    font-weight:800;
+    letter-spacing:-0.02em;
+    margin:0;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .brand svg{ flex-shrink:0; }
+  .brand-sub{
+    font-size:12px;
+    color:var(--sidebar-text);
+    margin:8px 0 28px 0;
+    line-height:1.5;
+    max-width:none;
+  }
+  .steps{ list-style:none; padding:0; margin:0; display:flex; flex-direction:column; }
+  .step-btn{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    width:100%;
+    text-align:left;
+    background:none;
+    border:none;
+    border-left:2px solid transparent;
+    padding:10px 11px;
+    cursor:pointer;
+    font-family:'Inter', sans-serif;
+    font-size:13px;
+    font-weight:500;
+    color:var(--sidebar-text);
+  }
+  .step-btn:hover{ color:#fff; }
+  .step-btn.active{
+    color:#fff;
+    border-left:2px solid var(--teal);
+    background:rgba(14,107,92,0.14);
+  }
+  .step-btn svg{ flex-shrink:0; opacity:0.85; }
+  .sidebar-footer{
+    margin-top:auto;
+    padding-top:18px;
+    border-top:1px solid var(--sidebar-line);
+    font-size:11px;
+    color:#5A5E67;
+    line-height:1.6;
+  }
+
+  .main{ flex:1; min-width:0; padding:40px 44px 80px; }
+  .content{ max-width:900px; }
+  h1.page-title{
+    font-size:25px;
+    font-weight:800;
+    letter-spacing:-0.02em;
+    margin:0 0 6px 0;
+  }
+  .page-sub{
+    color:var(--muted);
+    font-size:14px;
+    margin:0 0 26px 0;
+    max-width:62ch;
+    line-height:1.6;
+  }
+  label{
+    display:block;
+    font-size:12px;
+    font-weight:600;
+    margin-bottom:6px;
+    color:var(--ink);
+    letter-spacing:0.01em;
+  }
+  input[type=text], input[type=date], select, textarea{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:6px;
+    font-family:'Inter', sans-serif;
+    font-size:13.5px;
+    background:var(--card);
+    color:var(--ink);
+  }
+  textarea{ resize:vertical; min-height:90px; line-height:1.5; }
+  input:focus, select:focus, textarea:focus{ outline:none; border-color:var(--teal); box-shadow:0 0 0 3px rgba(14,107,92,0.12); }
+  .field{ margin-bottom:16px; max-width:460px; }
+  .field-wide{ max-width:640px; }
+  .field-row{ display:flex; gap:14px; flex-wrap:wrap; }
+  .field-row .field{ flex:1; min-width:180px; }
+  .field-hint{ font-size:11.5px; color:var(--muted); margin-top:5px; }
+
+  .section-label{
+    font-size:11px;
+    font-weight:700;
+    color:var(--teal);
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    margin:28px 0 12px 0;
+  }
+  .section-label:first-of-type{ margin-top:0; }
+
+  .law-panel{
+    background:var(--sidebar);
+    color:#E4E6EA;
+    border-radius:10px;
+    padding:18px 20px;
+    margin:24px 0;
+    font-size:13px;
+    line-height:1.7;
+  }
+  .law-panel h3{ font-size:14px; font-weight:700; margin:0 0 10px 0; color:#fff; }
+  .law-panel ul{ margin:0; padding-left:18px; }
+  .law-panel li{ margin-bottom:7px; }
+  .law-panel strong{ color:#fff; }
+
+  .room-section{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:18px 20px;
+    margin-bottom:14px;
+  }
+  .room-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:12px; }
+  .room-title-wrap{ display:flex; align-items:center; gap:8px; flex:1; min-width:0; }
+  .room-title{
+    font-family:'Manrope', sans-serif;
+    font-size:15.5px;
+    font-weight:700;
+    margin:0;
+    cursor:pointer;
+    padding:3px 6px;
+    border-radius:5px;
+    border:1px solid transparent;
+  }
+  .room-title:hover{ background:var(--line-soft); }
+  .room-title-input{
+    font-family:'Manrope', sans-serif;
+    font-size:15.5px;
+    font-weight:700;
+    border:1px solid var(--teal);
+    border-radius:5px;
+    padding:2px 6px;
+    background:#fff;
+    width:100%;
+    max-width:260px;
+  }
+  .room-actions{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .photo-count{ font-size:11.5px; color:var(--muted); white-space:nowrap; }
+  .icon-btn{ background:none; border:none; cursor:pointer; color:var(--muted); font-size:13px; padding:2px; line-height:1; }
+  .icon-btn:hover{ color:#C0392B; }
+
+  .photo-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(112px, 1fr));
+    gap:9px;
+    margin-bottom:12px;
+  }
+  .photo-tile{ position:relative; border-radius:7px; overflow:hidden; border:1px solid var(--line); background:var(--paper); }
+  .photo-tile img{ width:100%; height:92px; object-fit:cover; display:block; }
+  .photo-meta{ padding:5px 7px 2px; font-size:9.5px; color:var(--muted); line-height:1.4; }
+  .photo-note-input{
+    width:100%; border:none; border-top:1px solid var(--line-soft);
+    font-size:10px; padding:5px 7px; font-family:'Inter', sans-serif; background:var(--card);
+  }
+  .photo-note-input:focus{ outline:none; background:var(--line-soft); }
+  .photo-del{
+    position:absolute; top:4px; right:4px; background:rgba(18,20,26,0.72); color:#fff;
+    border:none; border-radius:5px; width:19px; height:19px; font-size:12px; cursor:pointer; line-height:1;
+  }
+
+  .btn{
+    display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border-radius:6px;
+    border:none; font-family:'Inter', sans-serif; font-size:13px; font-weight:600; cursor:pointer;
+  }
+  .btn-primary{ background:var(--teal); color:#fff; }
+  .btn-primary:hover{ background:var(--teal-dark); }
+  .btn-ghost{ background:var(--line-soft); color:var(--ink); }
+  .btn-ghost:hover{ background:var(--line); }
+  .btn-amber{ background:var(--amber); color:#fff; }
+  .btn-amber:hover{ background:#BF7A1F; }
+  input[type=file]{ display:none; }
+
+  .add-room-row{ display:flex; gap:10px; align-items:center; margin-top:18px; flex-wrap:wrap; }
+  .add-room-row input{ max-width:220px; }
+
+  .mode-toggle{ display:inline-flex; background:var(--line-soft); border-radius:7px; padding:3px; margin-bottom:24px; }
+  .mode-toggle button{
+    border:none; background:none; padding:8px 18px; border-radius:5px; font-family:'Inter', sans-serif;
+    font-size:13px; font-weight:600; cursor:pointer; color:var(--muted);
+  }
+  .mode-toggle button.active{ background:var(--card); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+
+  .compare-grid{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  @media (max-width: 720px){ .compare-grid{ grid-template-columns:1fr; } }
+  .compare-col h4{ font-size:11px; font-weight:600; color:var(--muted); margin:0 0 9px 0; letter-spacing:0.03em; }
+  .empty-note{ color:var(--muted); font-size:12px; }
+
+  .report-cta{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:26px; }
+  .report-cta h3{ font-size:17.5px; font-weight:800; margin:0 0 8px 0; }
+  .report-cta p{ color:var(--muted); font-size:13.5px; line-height:1.6; max-width:52ch; margin:0 0 20px 0; }
+  .save-note{ font-size:11.5px; color:var(--muted); margin-top:12px; }
+
+  .rules-preview{
+    background:var(--line-soft); border-radius:8px; padding:12px 14px; font-size:12.5px;
+    color:var(--ink); line-height:1.6; white-space:pre-wrap; max-height:120px; overflow-y:auto;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="sidebar">
+    <p class="brand">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0E6B5C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg>
+      Casa Check
+    </p>
+    <p class="brand-sub">Move-in / move-out documentation for college renters — any campus, any state.</p>
+    <ul class="steps" id="stepNav"></ul>
+    <div class="sidebar-footer">
+      Not legal advice. Renter protection laws vary by state — verify specifics for where you live.
+    </div>
+  </div>
+
+  <div class="main"><div class="content" id="main"></div></div>
+</div>
+
+<script>
+const ICONS = {
+  setup: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="M9 11h6M9 15h6M9 7h6"/></svg>',
+  capture: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z"/><circle cx="12" cy="13" r="3.2"/></svg>',
+  compare: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="8" height="14" rx="1.5"/><rect x="13" y="5" width="8" height="14" rx="1.5"/><path d="M7 9v6M17 9v6"/></svg>',
+  law: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 21h10"/><path d="m5 8 3-4 3 4M2 8h6M17 8l3-4 3 4M15 8h6"/><path d="M5 8a3 3 0 0 0 6 0M14 8a3 3 0 0 0 6 0"/></svg>',
+  report: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>',
+};
+
+const ROOMS_DEFAULT = ["Kitchen", "Living Room", "Bedroom", "Bathroom"];
+
+let state = {
+  property: { school: "", communityName: "", address: "", stateName: "Arizona", moveInDate: "", moveOutDate: "", rules: "" },
+  rooms: ROOMS_DEFAULT.map(name => ({ name, moveIn: [], moveOut: [] })),
+  step: "setup",
+  mode: "moveIn"
+};
+
+const STORAGE_KEY = "casa-check-property";
+
+async function loadState(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY);
+    if(res && res.value){
+      const parsed = JSON.parse(res.value);
+      state.property = { ...state.property, ...(parsed.property||{}) };
+      state.rooms = parsed.rooms || state.rooms;
+    }
+  }catch(e){}
+  render();
+}
+
+async function saveState(){
+  try{
+    await window.storage.set(STORAGE_KEY, JSON.stringify({ property: state.property, rooms: state.rooms }));
+  }catch(e){ console.error("Save failed", e); }
+}
+
+const STEPS = [
+  { id: "setup", label: "Property setup" },
+  { id: "capture", label: "Photo walkthrough" },
+  { id: "compare", label: "Compare rooms" },
+  { id: "law", label: "Renter rights" },
+  { id: "report", label: "Generate report" },
+];
+
+const US_STATES = ["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming","District of Columbia"];
+
+function renderNav(){
+  const nav = document.getElementById("stepNav");
+  nav.innerHTML = STEPS.map((s) => `
+    <li>
+      <button class="step-btn ${state.step===s.id?'active':''}" data-step="${s.id}">
+        ${ICONS[s.id]}${s.label}
+      </button>
+    </li>
+  `).join("");
+  nav.querySelectorAll(".step-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>{ state.step = btn.dataset.step; render(); });
+  });
+}
+
+function compressImage(file){
+  return new Promise((resolve)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const maxW = 1000;
+        const scale = Math.min(1, maxW / img.width);
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.72));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderSetup(){
+  return `
+    <h1 class="page-title">Property setup</h1>
+    <p class="page-sub">Start here before your move-in walkthrough. This info goes on the cover page of your report.</p>
+
+    <div class="section-label">Where you're living</div>
+    <div class="field-row">
+      <div class="field">
+        <label>University / college</label>
+        <input type="text" id="schoolInput" placeholder="e.g. University of Michigan" value="${state.property.school}">
+      </div>
+      <div class="field">
+        <label>State</label>
+        <select id="stateSelect">
+          ${US_STATES.map(s=>`<option ${state.property.stateName===s?'selected':''}>${s}</option>`).join("")}
+        </select>
+      </div>
+    </div>
+
+    <div class="field field-wide">
+      <label>Apartment complex / dorm / property name</label>
+      <input type="text" id="communityInput" placeholder="e.g. The Standard at College Ave" value="${state.property.communityName}">
+    </div>
+
+    <div class="field field-wide">
+      <label>Full address</label>
+      <input type="text" id="addressInput" placeholder="123 E College Ave, Unit 4B, City, State" value="${state.property.address}">
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Move-in date</label>
+        <input type="date" id="moveInDate" value="${state.property.moveInDate}">
+      </div>
+      <div class="field">
+        <label>Move-out / lease end date</label>
+        <input type="date" id="moveOutDate" value="${state.property.moveOutDate}">
+      </div>
+    </div>
+
+    <div class="section-label">Property rules &amp; move-out standards</div>
+    <div class="field field-wide">
+      <label>Paste or type this property's specific requirements (optional)</label>
+      <textarea id="rulesInput" placeholder="e.g. Carpets must be professionally cleaned before move-out. Nail holes must be filled and painted. No damage to blinds...">${state.property.rules}</textarea>
+      <p class="field-hint">Every complex has its own move-out checklist — keeping it here means you'll have it on hand when you document, and it's included in your final report.</p>
+    </div>
+
+    <div class="law-panel">
+      <h3>Why documentation matters</h3>
+      <ul>
+        <li>Most states require landlords to itemize any deposit deductions in writing.</li>
+        <li>Deadlines to return a deposit are usually set by state law — often 14 to 30 days after move-out.</li>
+        <li>Timestamped photos from move-in are your strongest evidence in a dispute, regardless of where you live.</li>
+      </ul>
+    </div>
+
+    <button class="btn btn-primary" id="saveSetup">Save &amp; continue to walkthrough</button>
+  `;
+}
+
+function renderCapture(){
+  const mode = state.mode;
+  return `
+    <h1 class="page-title">Photo walkthrough</h1>
+    <p class="page-sub">Photograph each room. Every photo is timestamped automatically. Click any room name to rename it.</p>
+
+    <div class="mode-toggle">
+      <button class="${mode==='moveIn'?'active':''}" data-mode="moveIn">Move-in</button>
+      <button class="${mode==='moveOut'?'active':''}" data-mode="moveOut">Move-out</button>
+    </div>
+
+    <div id="roomsWrap"></div>
+
+    <div class="add-room-row">
+      <input type="text" id="newRoomName" placeholder="Add a room (e.g. Patio, Garage, Common Area)">
+      <button class="btn btn-ghost" id="addRoomBtn">+ Add room</button>
+    </div>
+  `;
+}
+
+function renderRoomsInto(container){
+  const mode = state.mode;
+  container.innerHTML = state.rooms.map((room, ri)=>{
+    const photos = room[mode];
+    return `
+      <div class="room-section">
+        <div class="room-head">
+          <div class="room-title-wrap">
+            <h3 class="room-title" data-room="${ri}" title="Click to rename">${room.name}</h3>
+          </div>
+          <div class="room-actions">
+            <span class="photo-count">${photos.length} photo${photos.length===1?'':'s'}</span>
+            <button class="icon-btn room-remove" data-room="${ri}" title="Remove room">✕</button>
+          </div>
+        </div>
+        <div class="photo-grid">
+          ${photos.map((p, pi)=>`
+            <div class="photo-tile">
+              <img src="${p.dataUrl}" />
+              <button class="photo-del" data-room="${ri}" data-photo="${pi}">×</button>
+              <div class="photo-meta">${new Date(p.timestamp).toLocaleString([], {dateStyle:'medium', timeStyle:'short'})}</div>
+              <input class="photo-note-input" placeholder="note (optional)" value="${p.note||''}" data-room="${ri}" data-photo="${pi}">
+            </div>
+          `).join("")}
+        </div>
+        <label class="btn btn-ghost" style="cursor:pointer;">
+          + Add photo
+          <input type="file" accept="image/*" capture="environment" data-room="${ri}" class="photoInput">
+        </label>
+      </div>
+    `;
+  }).join("");
+
+  container.querySelectorAll(".room-title").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const ri = parseInt(el.dataset.room);
+      const input = document.createElement("input");
+      input.className = "room-title-input";
+      input.value = state.rooms[ri].name;
+      el.replaceWith(input);
+      input.focus();
+      input.select();
+      const commit = async ()=>{
+        const val = input.value.trim();
+        if(val) state.rooms[ri].name = val;
+        await saveState();
+        render();
+      };
+      input.addEventListener("blur", commit);
+      input.addEventListener("keydown", (e)=>{ if(e.key === "Enter") input.blur(); });
+    });
+  });
+
+  container.querySelectorAll(".room-remove").forEach(btn=>{
+    btn.addEventListener("click", async ()=>{
+      const ri = parseInt(btn.dataset.room);
+      if(state.rooms.length <= 1) return;
+      if(!confirm(`Remove "${state.rooms[ri].name}" and all its photos?`)) return;
+      state.rooms.splice(ri, 1);
+      await saveState();
+      render();
+    });
+  });
+
+  container.querySelectorAll(".photoInput").forEach(inp=>{
+    inp.addEventListener("change", async (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      const dataUrl = await compressImage(file);
+      const ri = parseInt(inp.dataset.room);
+      state.rooms[ri][state.mode].push({ dataUrl, timestamp: new Date().toISOString(), note: "" });
+      await saveState();
+      render();
+    });
+  });
+
+  container.querySelectorAll(".photo-del").forEach(btn=>{
+    btn.addEventListener("click", async ()=>{
+      const ri = parseInt(btn.dataset.room), pi = parseInt(btn.dataset.photo);
+      state.rooms[ri][state.mode].splice(pi, 1);
+      await saveState();
+      render();
+    });
+  });
+
+  container.querySelectorAll(".photo-note-input").forEach(inp=>{
+    inp.addEventListener("change", async ()=>{
+      const ri = parseInt(inp.dataset.room), pi = parseInt(inp.dataset.photo);
+      state.rooms[ri][state.mode][pi].note = inp.value;
+      await saveState();
+    });
+  });
+}
+
+function renderCompare(){
+  return `
+    <h1 class="page-title">Compare rooms</h1>
+    <p class="page-sub">Move-in vs. move-out, side by side, room by room.</p>
+    ${state.rooms.map(room => `
+      <div class="room-section">
+        <h3 style="font-family:'Manrope',sans-serif;font-size:15.5px;font-weight:700;margin:0 0 14px 0;">${room.name}</h3>
+        <div class="compare-grid">
+          <div class="compare-col">
+            <h4>MOVE-IN (${room.moveIn.length})</h4>
+            <div class="photo-grid">
+              ${room.moveIn.map(p=>`<div class="photo-tile"><img src="${p.dataUrl}"><div class="photo-meta">${new Date(p.timestamp).toLocaleDateString()}</div></div>`).join("") || '<p class="empty-note">No photos yet</p>'}
+            </div>
+          </div>
+          <div class="compare-col">
+            <h4>MOVE-OUT (${room.moveOut.length})</h4>
+            <div class="photo-grid">
+              ${room.moveOut.map(p=>`<div class="photo-tile"><img src="${p.dataUrl}"><div class="photo-meta">${new Date(p.timestamp).toLocaleDateString()}</div></div>`).join("") || '<p class="empty-note">No photos yet</p>'}
+            </div>
+          </div>
+        </div>
+      </div>
+    `).join("")}
+  `;
+}
+
+function renderLaw(){
+  const st = state.property.stateName || "your state";
+  return `
+    <h1 class="page-title">Renter rights, plain language</h1>
+    <p class="page-sub">General principles that hold in most states, plus specifics for ${st}. Not legal advice — for guidance specific to your situation, contact your campus legal resources or your state's tenant rights office.</p>
+
+    <div class="section-label">Common to most states</div>
+    <div class="room-section">
+      <h3 style="font-family:'Manrope',sans-serif;font-size:15px;font-weight:700;margin:0 0 10px 0;">Deposit return deadlines</h3>
+      <p style="font-size:13.5px;line-height:1.7;">Nearly every state sets a legal deadline for returning a security deposit after move-out — commonly somewhere between 14 and 30 days. Miss it, and landlords often owe more than the deposit itself.</p>
+    </div>
+    <div class="room-section">
+      <h3 style="font-family:'Manrope',sans-serif;font-size:15px;font-weight:700;margin:0 0 10px 0;">"Normal wear and tear" is usually protected</h3>
+      <p style="font-size:13.5px;line-height:1.7;">Minor scuffs, small nail holes, faded paint, worn carpet from ordinary use — these typically can't be deducted from your deposit anywhere in the U.S. Damage beyond that (holes in walls, stains, broken fixtures) usually can be.</p>
+    </div>
+    <div class="room-section">
+      <h3 style="font-family:'Manrope',sans-serif;font-size:15px;font-weight:700;margin:0 0 10px 0;">Written itemization is standard</h3>
+      <p style="font-size:13.5px;line-height:1.7;">Most states require a written, itemized list of deductions — a verbal explanation generally isn't enough. Keep any statement your landlord sends you along with your photos.</p>
+    </div>
+
+    <div class="section-label">${st}-specific example</div>
+    <div class="law-panel">
+      <h3>What Arizona law specifies (A.R.S. §33-1321)</h3>
+      <ul>
+        <li>Landlords must return the deposit — or an itemized written statement — within <strong>14 business days</strong> of move-out.</li>
+        <li>Deductions must be itemized by category and dollar amount; vague line items like "cleaning and repairs" don't satisfy the law.</li>
+        <li>If a landlord misses the deadline or won't explain deductions, tenants can send a written dispute and, if needed, file in small claims court.</li>
+      </ul>
+    </div>
+    <p style="font-size:12px;color:var(--muted);">Showing Arizona as a worked example. Search "[${st}] security deposit law" for the specifics that apply to you.</p>
+  `;
+}
+
+function renderReport(){
+  const totalPhotos = state.rooms.reduce((sum, r)=> sum + r.moveIn.length + r.moveOut.length, 0);
+  return `
+    <h1 class="page-title">Generate your report</h1>
+    <p class="page-sub">Compiles your property info, community rules, photos, timestamps, and notes into one PDF you can send to a landlord or bring to small claims court.</p>
+
+    <div class="report-cta">
+      <h3>Ready to export</h3>
+      <p>${state.property.communityName || state.property.address || "No property set yet"} · ${totalPhotos} photo${totalPhotos===1?'':'s'} across ${state.rooms.length} room${state.rooms.length===1?'':'s'}</p>
+      <button class="btn btn-amber" id="genReport">Download PDF report</button>
+      <p class="save-note">Your photos are saved in this browser as you go. Export a PDF as a permanent backup.</p>
+    </div>
+
+    ${state.property.rules ? `
+      <div class="section-label">Property rules on file</div>
+      <div class="rules-preview">${state.property.rules}</div>
+    ` : ""}
+  `;
+}
+
+async function generatePDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "pt", format: "letter" });
+  const margin = 48;
+  let y = margin;
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.text("Casa Check — Condition Report", margin, y); y += 26;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.text(`University: ${state.property.school || "—"}`, margin, y); y += 16;
+  doc.text(`Property: ${state.property.communityName || "—"}`, margin, y); y += 16;
+  doc.text(`Address: ${state.property.address || "—"}`, margin, y); y += 16;
+  doc.text(`State: ${state.property.stateName || "—"}`, margin, y); y += 16;
+  doc.text(`Move-in date: ${state.property.moveInDate || "—"}`, margin, y); y += 16;
+  doc.text(`Move-out date: ${state.property.moveOutDate || "—"}`, margin, y); y += 16;
+  doc.text(`Report generated: ${new Date().toLocaleString()}`, margin, y); y += 26;
+
+  if(state.property.rules){
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("Property rules & move-out standards on file:", margin, y); y += 16;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    const rulesLines = doc.splitTextToSize(state.property.rules, pageW - margin*2);
+    doc.text(rulesLines, margin, y);
+    y += rulesLines.length * 12 + 16;
+  }
+
+  if(y > pageH - 100){ doc.addPage(); y = margin; }
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("Most states require written itemized deductions and set a deadline (often 14-30 days) to return a deposit after move-out.", margin, y, { maxWidth: pageW - margin*2 });
+  y += 40;
+
+  for(const room of state.rooms){
+    for(const mode of ["moveIn", "moveOut"]){
+      const photos = room[mode];
+      if(photos.length === 0) continue;
+
+      if(y > pageH - 120){ doc.addPage(); y = margin; }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.text(`${room.name} — ${mode === "moveIn" ? "Move-In" : "Move-Out"}`, margin, y);
+      y += 20;
+
+      for(const p of photos){
+        const imgW = 220, imgH = 165;
+        if(y + imgH > pageH - margin){ doc.addPage(); y = margin; }
+        try{
+          doc.addImage(p.dataUrl, "JPEG", margin, y, imgW, imgH);
+        }catch(e){}
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        const textX = margin + imgW + 16;
+        doc.text(new Date(p.timestamp).toLocaleString(), textX, y + 16, { maxWidth: pageW - textX - margin });
+        if(p.note){
+          doc.text(p.note, textX, y + 34, { maxWidth: pageW - textX - margin });
+        }
+        y += imgH + 20;
+      }
+      y += 10;
+    }
+  }
+
+  const fileLabel = state.property.communityName || state.property.address || 'report';
+  doc.save(`casa-check-${fileLabel.replace(/[^a-z0-9]/gi,'-').toLowerCase()}.pdf`);
+}
+
+function render(){
+  renderNav();
+  const main = document.getElementById("main");
+
+  if(state.step === "setup"){
+    main.innerHTML = renderSetup();
+    document.getElementById("saveSetup").addEventListener("click", async ()=>{
+      state.property.school = document.getElementById("schoolInput").value;
+      state.property.stateName = document.getElementById("stateSelect").value;
+      state.property.communityName = document.getElementById("communityInput").value;
+      state.property.address = document.getElementById("addressInput").value;
+      state.property.moveInDate = document.getElementById("moveInDate").value;
+      state.property.moveOutDate = document.getElementById("moveOutDate").value;
+      state.property.rules = document.getElementById("rulesInput").value;
+      await saveState();
+      state.step = "capture";
+      render();
+    });
+  } else if(state.step === "capture"){
+    main.innerHTML = renderCapture();
+    main.querySelectorAll("[data-mode]").forEach(btn=>{
+      btn.addEventListener("click", ()=>{ state.mode = btn.dataset.mode; render(); });
+    });
+    renderRoomsInto(document.getElementById("roomsWrap"));
+    document.getElementById("addRoomBtn").addEventListener("click", async ()=>{
+      const input = document.getElementById("newRoomName");
+      const name = input.value.trim();
+      if(!name) return;
+      state.rooms.push({ name, moveIn: [], moveOut: [] });
+      await saveState();
+      render();
+    });
+  } else if(state.step === "compare"){
+    main.innerHTML = renderCompare();
+  } else if(state.step === "law"){
+    main.innerHTML = renderLaw();
+  } else if(state.step === "report"){
+    main.innerHTML = renderReport();
+    document.getElementById("genReport").addEventListener("click", generatePDF);
+  }
+}
+
+loadState();
+</script>
+
+</body>
+</html>
