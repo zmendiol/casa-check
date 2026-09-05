@@ -16,9 +16,29 @@ The dev server binds to all interfaces, so you can open it on your phone at
 something you actually perform while standing in the room.
 
 ```bash
-npm run build     # production build into dist/
-npm run preview   # serve the built output
+npm run build          # production build into dist/
+npm run preview        # serve the built output
+npm run build:single   # one self-contained HTML in dist-single/
 ```
+
+`build:single` inlines the CSS and JS and folds jsPDF in rather than lazy
+loading it, producing one portable file. **Serve it over http — do not open it
+by double-clicking.** Browsers refuse IndexedDB on `file://` origins, so photos
+cannot be stored there; the app detects this and says so on load rather than
+failing silently on the first photo.
+
+## Demoing it
+
+The walkthrough is performed standing in a room, so demo it on a phone:
+
+- **Same wifi:** `npm run dev`, then open `http://<your-computer-ip>:5173` on the
+  phone. Needs the laptop running.
+- **No laptop:** the app is also published as a private artifact on claude.ai,
+  which opens on any device signed into the same account. Rebuild with
+  `build:single` and republish to update it; the URL stays the same.
+
+Storage is per-browser and per-origin, so each of these keeps its own separate
+record. Moving one between them is what the JSON backup is for.
 
 ## Project layout
 
