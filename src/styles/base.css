@@ -4,7 +4,12 @@
 
 html, body {
   margin: 0;
-  overflow-x: hidden;
+  /* `clip`, not `hidden`: `overflow-x: hidden` forces overflow-y to
+     `auto`, which makes html/body scroll containers and silently kills
+     `position: sticky` on the sidebar — on mobile the step nav scrolled
+     away instead of staying put. `clip` guards against sideways scroll
+     without establishing a scroll container. */
+  overflow-x: clip;
 }
 
 body {

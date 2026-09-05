@@ -4,19 +4,17 @@ import { MODE_KEYS } from "../lib/constants.js";
 import { generateReport } from "../lib/pdf.js";
 import { countPhotos, useStore } from "../state/store.jsx";
 
-/** How many photos carry a camera-recorded time vs. a weaker one. */
-function countProvenance(rooms) {
-  let camera = 0;
+/** How many photos carry a timestamp weaker than a camera-recorded one. */
+function countWeakTimestamps(rooms) {
   let weak = 0;
   for (const room of rooms) {
     for (const mode of MODE_KEYS) {
       for (const photo of room[mode]) {
-        if (photo.timestampSource === "camera") camera += 1;
-        else weak += 1;
+        if (photo.timestampSource !== "camera") weak += 1;
       }
     }
   }
-  return { camera, weak };
+  return weak;
 }
 
 export function GenerateReport() {
@@ -26,7 +24,7 @@ export function GenerateReport() {
 
   const totalPhotos = countPhotos(state.rooms);
   const summary = state.property.communityName || state.property.address || "No property set yet";
-  const { weak } = countProvenance(state.rooms);
+  const weak = countWeakTimestamps(state.rooms);
 
   async function handleGenerate() {
     setBusy(true);
