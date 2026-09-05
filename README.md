@@ -98,6 +98,36 @@ so — a photo without a camera timestamp is labelled rather than quietly
 presented as if it had one. Stamping upload time and calling it a capture time
 would be the single easiest way to get a renter's report dismissed.
 
+## Photo import performance
+
+Importing photos was once minutes-slow on a phone and appeared to stop entirely
+whenever the tab lost focus. The cause was not decoding, which is what it looked
+like. Measured on a 12MP (4032x3024) photo:
+
+| stage | time |
+|---|---|
+| read the file | 2ms |
+| decode | 36ms |
+| draw to canvas | 0ms |
+| encode via `canvas.toBlob` | **1024ms** |
+| the same encode via `toDataURL` | **13ms** |
+
+`toBlob` returns its result through a callback the browser defers whenever the
+page is not in the foreground — and stops delivering once the tab is
+backgrounded, which is exactly what "it stops when I switch tabs" was.
+`src/lib/images.js` therefore encodes synchronously and converts the data URL to
+a Blob itself. Do not "modernise" that back to `toBlob`.
+
+Two supporting changes: each file is read once (both the EXIF timestamp and the
+JPEG dimensions come from the same buffer, and on iOS a read can trigger an
+OS-level HEIC transcode), and `createImageBitmap` is given explicit resize
+dimensions so a 48MP photo never exists as a ~190MB bitmap.
+
+Photos import three at a time and are added in the order they were picked.
+Progress lives in the store, not in the room card, so it stays visible and
+keeps running when you move to another step. End to end: three 12MP photos in
+about 1.6 seconds.
+
 ## Backup
 
 `Generate report -> Backup & data` exports the whole record — property details,

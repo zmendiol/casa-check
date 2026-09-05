@@ -78,7 +78,10 @@ function createInitialState() {
   const ui = loadUi() || {};
   const step = STEPS.some((s) => s.id === ui.step) ? ui.step : "setup";
   const mode = MODE_KEYS.includes(ui.mode) ? ui.mode : "moveIn";
-  return { property, rooms, step, mode };
+  // `upload` is transient and deliberately not persisted. It lives here rather
+  // than in RoomCard so an import stays visible — and keeps running — when the
+  // user wanders off to another step while waiting.
+  return { property, rooms, step, mode, upload: null };
 }
 
 /* ------------------------------------------------------------------ *
@@ -91,6 +94,19 @@ function mapRoom(state, roomId, fn) {
 
 export function reducer(state, action) {
   switch (action.type) {
+    case "UPLOAD_START":
+      return {
+        ...state,
+        upload: { done: 0, total: action.total, roomId: action.roomId, roomName: action.roomName },
+      };
+
+    case "UPLOAD_PROGRESS":
+      // A late progress event from a finished import must not revive the bar.
+      return state.upload ? { ...state, upload: { ...state.upload, done: action.done } } : state;
+
+    case "UPLOAD_END":
+      return { ...state, upload: null };
+
     case "SET_STEP":
       return { ...state, step: action.step };
 
@@ -149,7 +165,13 @@ export function reducer(state, action) {
     }
 
     case "RESET":
-      return { property: { ...EMPTY_PROPERTY }, rooms: defaultRooms(), step: "setup", mode: "moveIn" };
+      return {
+        property: { ...EMPTY_PROPERTY },
+        rooms: defaultRooms(),
+        step: "setup",
+        mode: "moveIn",
+        upload: null,
+      };
 
     default:
       return state;

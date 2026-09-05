@@ -25,12 +25,77 @@ const HEAD_BYTES = 256 * 1024;
 export async function readCaptureTime(file) {
   try {
     const buf = await file.slice(0, HEAD_BYTES).arrayBuffer();
-    const view = new DataView(buf);
+    return parseCaptureTime(new DataView(buf));
+  } catch {
+    // A malformed header must never block adding a photo.
+    return null;
+  }
+}
+
+/**
+ * Same, but for a file already read into memory. Photo import reads each file
+ * exactly once — on iOS a read can trigger an OS-level HEIC transcode, so
+ * reading it a second time just for the timestamp is expensive.
+ *
+ * @returns {{date: Date, offset: string|null} | null}
+ */
+export function parseCaptureTime(view) {
+  try {
     const app1 = findApp1(view);
     if (app1 == null) return null;
     return readFromTiff(view, app1);
   } catch {
-    // A malformed header must never block adding a photo.
+    return null;
+  }
+}
+
+/**
+ * Reads a JPEG's pixel dimensions straight out of its Start-Of-Frame header,
+ * without decoding a single pixel.
+ *
+ * This is what makes fast import possible: knowing the source size up front
+ * lets `createImageBitmap` decode DIRECTLY to the size we want, so a 48MP
+ * photo never has to exist as a ~190MB bitmap on its way to a 1000px one.
+ *
+ * @returns {{width: number, height: number} | null}
+ */
+export function readJpegDimensions(view) {
+  try {
+    if (view.byteLength < 4 || view.getUint16(0) !== 0xffd8) return null;
+
+    let offset = 2;
+    while (offset + 4 <= view.byteLength) {
+      if (view.getUint8(offset) !== 0xff) return null;
+      const marker = view.getUint8(offset + 1);
+
+      // Standalone markers carry no length payload.
+      if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
+        offset += 2;
+        continue;
+      }
+      // Start of scan / end of image: past every header we care about.
+      if (marker === 0xda || marker === 0xd9) return null;
+
+      const size = view.getUint16(offset + 2);
+      if (size < 2) return null;
+
+      // SOF0..SOF15 carry the frame size. C4 (DHT), C8 (JPG) and CC (DAC)
+      // share the range but are not frame headers.
+      const isSof =
+        marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc;
+
+      if (isSof) {
+        if (offset + 9 > view.byteLength) return null;
+        const height = view.getUint16(offset + 5);
+        const width = view.getUint16(offset + 7);
+        if (!width || !height) return null;
+        return { width, height };
+      }
+
+      offset += 2 + size;
+    }
+    return null;
+  } catch {
     return null;
   }
 }

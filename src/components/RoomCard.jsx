@@ -1,23 +1,24 @@
 import { useRef, useState } from "react";
 import { PhotoTile } from "./PhotoTile.jsx";
 import { PhotoViewer } from "./PhotoViewer.jsx";
-import { compressImage, resolveCaptureTime } from "../lib/images.js";
+import { preparePhoto } from "../lib/images.js";
 import { uid } from "../lib/uid.js";
 import { deletePhotoBlob, putPhotoBlob } from "../state/storage.js";
 import { useStore } from "../state/store.jsx";
 
 export function RoomCard({ room, mode, canRemove }) {
-  const { dispatch } = useStore();
+  const { state, dispatch } = useStore();
   const [renaming, setRenaming] = useState(false);
   // Set when Escape cancels an edit, so the blur that follows the input being
   // unmounted cannot commit the discarded text.
   const cancelledRename = useRef(false);
-  const [progress, setProgress] = useState(null); // { done, total }
   const [error, setError] = useState(null);
   const [viewing, setViewing] = useState(null); // index into photos
 
   const photos = room[mode];
-  const busy = progress !== null;
+  // Progress lives in the store now, so it survives leaving this screen.
+  const upload = state.upload?.roomId === room.id ? state.upload : null;
+  const busy = upload !== null;
 
   async function handleFiles(event) {
     const input = event.target;
@@ -28,32 +29,61 @@ export function RoomCard({ room, mode, canRemove }) {
     if (files.length === 0) return;
 
     setError(null);
-    const failures = [];
+    dispatch({
+      type: "UPLOAD_START",
+      total: files.length,
+      roomId: room.id,
+      roomName: room.name,
+    });
 
-    // Sequential rather than parallel: decoding several full-resolution photos
-    // at once is a good way to make a phone run out of memory mid-walkthrough.
-    for (let i = 0; i < files.length; i += 1) {
-      setProgress({ done: i + 1, total: files.length });
-      const file = files[i];
-      try {
-        const [blob, when] = await Promise.all([
-          compressImage(file),
-          resolveCaptureTime(file),
-        ]);
-        const photo = {
-          id: uid(),
-          timestamp: when.timestamp,
-          timestampSource: when.timestampSource,
-          note: "",
-        };
-        await putPhotoBlob(photo.id, blob);
-        dispatch({ type: "ADD_PHOTO", roomId: room.id, mode, photo });
-      } catch (err) {
-        failures.push(`${file.name}: ${err.message}`);
+    const failures = [];
+    // `undefined` = still working, `null` = failed, object = ready to add.
+    const results = new Array(files.length);
+    let taken = 0;
+    let finished = 0;
+    let emitted = 0;
+
+    // Photos are added in the order they were picked, not the order they
+    // happen to finish — so the grid matches the walkthrough.
+    const drain = () => {
+      while (emitted < results.length && results[emitted] !== undefined) {
+        const photo = results[emitted];
+        if (photo) dispatch({ type: "ADD_PHOTO", roomId: room.id, mode, photo });
+        emitted += 1;
+      }
+    };
+
+    // A few at a time. preparePhoto decodes straight to the stored size, so
+    // each job stays small; the old one-at-a-time loop existed only because
+    // full-resolution decoding made concurrency a memory hazard.
+    const LANES = 3;
+
+    async function lane() {
+      for (;;) {
+        const i = taken;
+        taken += 1;
+        if (i >= files.length) return;
+
+        try {
+          const { blob, timestamp, timestampSource } = await preparePhoto(files[i]);
+          const photo = { id: uid(), timestamp, timestampSource, note: "" };
+          await putPhotoBlob(photo.id, blob);
+          results[i] = photo;
+        } catch (err) {
+          results[i] = null;
+          failures.push(`${files[i].name}: ${err.message}`);
+        }
+
+        finished += 1;
+        dispatch({ type: "UPLOAD_PROGRESS", done: finished });
+        drain();
       }
     }
 
-    setProgress(null);
+    await Promise.all(Array.from({ length: Math.min(LANES, files.length) }, lane));
+    drain();
+    dispatch({ type: "UPLOAD_END" });
+
     if (failures.length > 0) {
       setError(
         failures.length === 1
@@ -175,7 +205,7 @@ export function RoomCard({ room, mode, canRemove }) {
       )}
 
       <label className="btn btn-ghost" style={{ cursor: busy ? "default" : "pointer" }}>
-        {busy ? `Adding ${progress.done} of ${progress.total}…` : "+ Add photos"}
+        {busy ? `Adding ${Math.min(upload.done + 1, upload.total)} of ${upload.total}…` : "+ Add photos"}
         <input
           type="file"
           accept="image/*"
