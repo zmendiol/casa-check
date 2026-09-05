@@ -166,6 +166,12 @@ export function StoreProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, null, createInitialState);
   const saveTimer = useRef(null);
 
+  // Always the current rooms. The mount-only migration effect below must not
+  // prune against a stale snapshot, or a photo added while it runs looks like
+  // an orphan and loses its bytes.
+  const roomsRef = useRef(state.rooms);
+  roomsRef.current = state.rooms;
+
   // Persist metadata. Debounced because the setup form dispatches per
   // keystroke — which is what stops the original's "navigate away and lose
   // everything you typed" behaviour.
@@ -221,7 +227,7 @@ export function StoreProvider({ children }) {
         }
       }
 
-      await pruneOrphanPhotos(state.rooms);
+      await pruneOrphanPhotos(() => roomsRef.current);
 
       // Ask the browser not to evict this data under storage pressure. A
       // deposit dispute can surface months after move-out.

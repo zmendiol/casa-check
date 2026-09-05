@@ -179,8 +179,9 @@ export function saveUi(ui) {
 
 /**
  * Reads a record written by the original prototype, where every photo carried
- * an inline `dataUrl`. Photo bytes are re-homed into IndexedDB lazily by
- * `absorbLegacyPhotos` so this stays synchronous for the reducer's initializer.
+ * an inline `dataUrl`. This stays synchronous so the reducer's initializer can
+ * use it; the photo bytes are re-homed into IndexedDB by the migration effect
+ * in store.jsx once the provider mounts.
  */
 function migrateLegacyRecord() {
   const raw = localStorage.getItem(LEGACY_KEY);
@@ -209,17 +210,29 @@ export async function dataUrlToBlob(dataUrl) {
 
 /**
  * Deletes photo blobs that no room still references. Orphans accumulate if a
- * write is interrupted between storing a blob and saving the record.
+ * write is interrupted between storing a blob and saving the record, and
+ * whenever a restore replaces one record with another.
+ *
+ * @param rooms  the current rooms, or a function returning them. Prefer the
+ *               function: a stale snapshot here deletes live photos.
  */
 export async function pruneOrphanPhotos(rooms) {
   try {
+    // Order matters. List the stored ids FIRST, then read the room list.
+    // A photo added after the listing cannot appear in `stored`, and one added
+    // before it is present in the rooms read afterwards — so a photo added
+    // while this runs is never mistaken for an orphan. Reading rooms first (as
+    // this did) left a window where a just-added photo was in neither set and
+    // had its bytes deleted.
+    const stored = await listPhotoIds();
+    const current = typeof rooms === "function" ? rooms() : rooms || [];
+
     const referenced = new Set();
-    for (const room of rooms) {
+    for (const room of current) {
       for (const mode of ["moveIn", "moveOut"]) {
         for (const photo of room[mode] || []) referenced.add(photo.id);
       }
     }
-    const stored = await listPhotoIds();
     const orphans = stored.filter((id) => !referenced.has(id));
     await Promise.all(orphans.map((id) => deletePhotoBlob(id)));
     return orphans.length;
@@ -248,6 +261,21 @@ export async function requestPersistentStorage() {
     if (!navigator.storage?.persist) return { supported: false, persisted: false };
     if (await navigator.storage.persisted()) return { supported: true, persisted: true };
     return { supported: true, persisted: await navigator.storage.persist() };
+  } catch {
+    return { supported: false, persisted: false };
+  }
+}
+
+/**
+ * Reads whether storage is already persistent WITHOUT requesting it.
+ *
+ * `persist()` is a permission request that prompts in some browsers, so it
+ * belongs on startup only. Anything that merely displays the status uses this.
+ */
+export async function getPersistenceStatus() {
+  try {
+    if (!navigator.storage?.persisted) return { supported: false, persisted: false };
+    return { supported: true, persisted: await navigator.storage.persisted() };
   } catch {
     return { supported: false, persisted: false };
   }

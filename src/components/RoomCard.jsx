@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { PhotoTile } from "./PhotoTile.jsx";
 import { PhotoViewer } from "./PhotoViewer.jsx";
 import { compressImage, resolveCaptureTime } from "../lib/images.js";
@@ -9,6 +9,9 @@ import { useStore } from "../state/store.jsx";
 export function RoomCard({ room, mode, canRemove }) {
   const { dispatch } = useStore();
   const [renaming, setRenaming] = useState(false);
+  // Set when Escape cancels an edit, so the blur that follows the input being
+  // unmounted cannot commit the discarded text.
+  const cancelledRename = useRef(false);
   const [progress, setProgress] = useState(null); // { done, total }
   const [error, setError] = useState(null);
   const [viewing, setViewing] = useState(null); // index into photos
@@ -101,10 +104,26 @@ export function RoomCard({ room, mode, canRemove }) {
               autoFocus
               aria-label="Room name"
               onFocus={(e) => e.target.select()}
-              onBlur={(e) => commitRename(e.target.value)}
+              onBlur={(e) => {
+                if (cancelledRename.current) {
+                  cancelledRename.current = false;
+                  return;
+                }
+                commitRename(e.target.value);
+              }}
               onKeyDown={(e) => {
-                if (e.key === "Enter") e.target.blur();
-                if (e.key === "Escape") setRenaming(false);
+                // Commit directly rather than via blur(). Relying on blur meant
+                // Enter silently did nothing whenever the field had not taken
+                // focus, and left the editor open with the text stranded.
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  cancelledRename.current = true;
+                  commitRename(e.currentTarget.value);
+                }
+                if (e.key === "Escape") {
+                  cancelledRename.current = true;
+                  setRenaming(false);
+                }
               }}
             />
           ) : (

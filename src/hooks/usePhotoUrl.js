@@ -14,6 +14,7 @@ export function usePhotoUrl(id) {
   useEffect(() => {
     let active = true;
     setUrl(null);
+    if (!id) return undefined;
 
     getPhotoUrl(id)
       .then((resolved) => {

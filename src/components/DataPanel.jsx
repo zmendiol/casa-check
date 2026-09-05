@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { exportBackup, importBackup } from "../lib/backup.js";
-import { clearAll, estimateUsage, requestPersistentStorage } from "../state/storage.js";
+import {
+  clearAll,
+  estimateUsage,
+  getPersistenceStatus,
+  pruneOrphanPhotos,
+} from "../state/storage.js";
 import { countPhotos, useStore } from "../state/store.jsx";
 
 function formatBytes(bytes) {
@@ -28,9 +33,12 @@ export function DataPanel() {
   useEffect(() => {
     let active = true;
     (async () => {
+      // Read the status; never re-request it. persist() is a permission
+      // prompt in some browsers, and this effect reruns on every photo added.
+      // The one actual request happens once, at store startup.
       const [usage, persistence] = await Promise.all([
         estimateUsage(),
-        requestPersistentStorage(),
+        getPersistenceStatus(),
       ]);
       if (active) setStorage({ usage, persistence });
     })();
@@ -84,6 +92,10 @@ export function DataPanel() {
     try {
       const { record: restored, restored: count, exportedAt } = await importBackup(file);
       dispatch({ type: "REPLACE_RECORD", record: restored });
+
+      // The replaced record's photos are now unreferenced. Without this they
+      // sit in IndexedDB forever, eating quota that the new record needs.
+      await pruneOrphanPhotos(restored.rooms);
       const when = exportedAt ? ` from ${new Date(exportedAt).toLocaleDateString()}` : "";
       setStatus({
         tone: "success",

@@ -10,8 +10,10 @@ import { TIMESTAMP_SOURCES } from "../lib/images.js";
  * document is actually in frame. This is the "did I get the shot" view.
  */
 export function PhotoViewer({ photos, index, roomName, onIndexChange, onClose }) {
-  const photo = photos[index];
-  const url = usePhotoUrl(photo.id);
+  // Callers guard this, but a stale index (a photo deleted underneath an open
+  // viewer) would otherwise throw and take the whole screen down with it.
+  const photo = photos[index] ?? null;
+  const url = usePhotoUrl(photo?.id);
 
   const go = useCallback(
     (delta) => {
@@ -36,6 +38,9 @@ export function PhotoViewer({ photos, index, roomName, onIndexChange, onClose })
       document.body.style.overflow = previous;
     };
   }, [go, onClose]);
+
+  // After the hooks, so hook order stays stable across renders.
+  if (!photo) return null;
 
   const source = TIMESTAMP_SOURCES[photo.timestampSource] || TIMESTAMP_SOURCES.upload;
 
