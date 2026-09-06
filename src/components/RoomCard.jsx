@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { PhotoTile } from "./PhotoTile.jsx";
 import { PhotoViewer } from "./PhotoViewer.jsx";
+import { recommendedLanes } from "../lib/encodeWorker.js";
 import { preparePhoto } from "../lib/images.js";
 import { uid } from "../lib/uid.js";
 import { deletePhotoBlob, putPhotoBlob } from "../state/storage.js";
@@ -53,10 +54,9 @@ export function RoomCard({ room, mode, canRemove }) {
       }
     };
 
-    // A few at a time. preparePhoto decodes straight to the stored size, so
-    // each job stays small; the old one-at-a-time loop existed only because
-    // full-resolution decoding made concurrency a memory hazard.
-    const LANES = 3;
+    // Scaled to the device rather than fixed: a phone with two cores should
+    // not run the same number of decodes as a desktop with sixteen.
+    const LANES = recommendedLanes();
 
     async function lane() {
       for (;;) {

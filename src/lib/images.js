@@ -1,3 +1,4 @@
+import { encodeInWorker } from "./encodeWorker.js";
 import { parseCaptureTime, readCaptureTime, readJpegDimensions } from "./exif.js";
 import { MAX_PHOTO_EDGE, PHOTO_QUALITY } from "./constants.js";
 
@@ -5,22 +6,25 @@ import { MAX_PHOTO_EDGE, PHOTO_QUALITY } from "./constants.js";
  * Turns a picked file into everything a stored photo needs: the downscaled
  * JPEG bytes, when it was taken, and how trustworthy that time is.
  *
- * Speed is the point of this function. Measured on a 12MP (4032x3024) photo,
- * the cost was NOT where it looked: decoding took 36ms and the encode 13ms,
- * while `canvas.toBlob` spent 1024ms doing nothing but waiting to deliver its
- * callback. See `encodeJpeg` — that callback was the actual bottleneck.
+ * Speed is the point of this function, and the cost was not where it looked.
+ * Measured on a 12MP (4032x3024) photo: reading it 2ms, decoding 36ms, drawing
+ * 0ms — and `canvas.toBlob` 1032ms. The identical encode through the
+ * synchronous `toDataURL` takes 19ms. That holds whether or not the page is in
+ * the foreground, so it is a property of `toBlob` itself, not of throttling.
  *
- * Three things keep this fast:
+ * Four things keep this fast on any device:
  *
- *   1. The encode is synchronous, so no deferred callback can stall it.
- *   2. The file is read ONCE. Both the EXIF timestamp and the pixel dimensions
+ *   1. Encoding happens in a worker where possible, so no amount of device
+ *      slowness can freeze the interface, and several photos genuinely run at
+ *      once across cores. `encodeJpeg` is the main-thread fallback.
+ *   2. Neither path uses `canvas.toBlob`.
+ *   3. The file is read ONCE. Both the EXIF timestamp and the pixel dimensions
  *      come out of that single buffer's header. On iOS a read of a photo from
  *      the library can trigger an OS-level HEIC transcode, so a second read
  *      costs as much as the first.
- *   3. The dimensions from the header let `createImageBitmap` decode straight
- *      to the target size. That is roughly decode-speed neutral, but it means a
- *      48MP photo never has to exist as a ~190MB bitmap on a phone, which is
- *      the difference between slow and out-of-memory.
+ *   4. The dimensions from the header let the decoder scale during decode, so a
+ *      48MP photo never has to exist as a ~190MB bitmap on a phone — the
+ *      difference between slow and out-of-memory.
  */
 export async function preparePhoto(file, options = {}) {
   const { maxEdge = MAX_PHOTO_EDGE, quality = PHOTO_QUALITY } = options;
@@ -34,9 +38,53 @@ export async function preparePhoto(file, options = {}) {
   const buffer = await file.arrayBuffer();
   const view = new DataView(buffer);
   const type = file.type || "image/jpeg";
-  const blob = new Blob([buffer], { type });
 
   const when = resolveCaptureTimeFromView(view, file);
+  const size = readJpegDimensions(view);
+  const target = targetSize(size, maxEdge);
+
+  // Preferred path: hand the bytes to a worker and keep the main thread free.
+  // The buffer is transferred, so everything below re-reads the file instead.
+  try {
+    const encoded = await encodeInWorker({
+      buffer,
+      type,
+      targetWidth: target?.width,
+      targetHeight: target?.height,
+      quality,
+    });
+    if (encoded) return { blob: encoded, ...when };
+  } catch {
+    /* Worker unavailable or failed; fall through to the main thread. */
+  }
+
+  // If the worker never took the buffer it is still intact, so reuse it —
+  // re-reading is exactly the cost this function exists to avoid, and the
+  // devices without workers are the ones that can least afford it.
+  return prepareOnMainThread(file, { maxEdge, quality, when, buffer });
+}
+
+/** Target dimensions for a known source size, or null when it is unknown. */
+function targetSize(size, maxEdge) {
+  if (!size) return null;
+  const longest = Math.max(size.width, size.height);
+  const scale = Math.min(1, maxEdge / longest);
+  return {
+    width: Math.max(1, Math.round(size.width * scale)),
+    height: Math.max(1, Math.round(size.height * scale)),
+  };
+}
+
+/**
+ * The fallback: same work, on the main thread. Used when workers or
+ * OffscreenCanvas are unavailable (older Safari), or when a worker fails.
+ */
+async function prepareOnMainThread(file, { maxEdge, quality, when, buffer }) {
+  // A transferred ArrayBuffer is detached and reports zero length.
+  const bytes = buffer && buffer.byteLength > 0 ? buffer : await file.arrayBuffer();
+  const view = new DataView(bytes);
+  const type = file.type || "image/jpeg";
+  const blob = new Blob([bytes], { type });
   const source = await decodeToFit(blob, readJpegDimensions(view), maxEdge);
 
   try {

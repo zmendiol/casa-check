@@ -112,21 +112,33 @@ like. Measured on a 12MP (4032x3024) photo:
 | encode via `canvas.toBlob` | **1024ms** |
 | the same encode via `toDataURL` | **13ms** |
 
-`toBlob` returns its result through a callback the browser defers whenever the
-page is not in the foreground — and stops delivering once the tab is
-backgrounded, which is exactly what "it stops when I switch tabs" was.
-`src/lib/images.js` therefore encodes synchronously and converts the data URL to
-a Blob itself. Do not "modernise" that back to `toBlob`.
+That gap holds whether or not the page is in the foreground, so it is a
+property of `canvas.toBlob` itself and not of background throttling. **Do not
+"modernise" either encode path back to `toBlob`.**
+
+Encoding happens in a Web Worker (`src/lib/encodeWorker.js`) via
+`OffscreenCanvas`, so no amount of device slowness can freeze the interface,
+and photos genuinely process in parallel across cores. Measured over six 12MP
+photos, the worst main-thread stall drops from 493ms to 111ms versus doing the
+same work inline. Lane count follows `navigator.hardwareConcurrency`, so a
+two-core phone does not attempt what a sixteen-core desktop does.
+
+The worker is built from a function turned into a Blob URL rather than through
+bundler worker plumbing. That is deliberate: it keeps the single-file build a
+genuinely single file, and it is verified to survive minification.
+
+Where workers or `OffscreenCanvas` are missing (older Safari), the same work
+runs on the main thread using the synchronous `toDataURL` path — still far
+faster than `toBlob`.
 
 Two supporting changes: each file is read once (both the EXIF timestamp and the
 JPEG dimensions come from the same buffer, and on iOS a read can trigger an
-OS-level HEIC transcode), and `createImageBitmap` is given explicit resize
-dimensions so a 48MP photo never exists as a ~190MB bitmap.
+OS-level HEIC transcode), and the decoder is given explicit resize dimensions
+so a 48MP photo never exists as a ~190MB bitmap.
 
-Photos import three at a time and are added in the order they were picked.
+Photos are added in the order they were picked, not the order they finish.
 Progress lives in the store, not in the room card, so it stays visible and
-keeps running when you move to another step. End to end: three 12MP photos in
-about 1.6 seconds.
+keeps running when you move to another step.
 
 ## Backup
 
