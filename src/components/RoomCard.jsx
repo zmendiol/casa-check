@@ -38,6 +38,8 @@ export function RoomCard({ room, mode, canRemove }) {
     });
 
     const failures = [];
+    const timings = [];
+    const startedAt = performance.now();
     // `undefined` = still working, `null` = failed, object = ready to add.
     const results = new Array(files.length);
     let taken = 0;
@@ -65,9 +67,11 @@ export function RoomCard({ room, mode, canRemove }) {
         if (i >= files.length) return;
 
         try {
-          const { blob, timestamp, timestampSource } = await preparePhoto(files[i]);
+          const { blob, timestamp, timestampSource, timing } = await preparePhoto(files[i]);
           const photo = { id: uid(), timestamp, timestampSource, note: "" };
+          const storeStart = performance.now();
           await putPhotoBlob(photo.id, blob);
+          if (timing) timings.push({ ...timing, storeMs: performance.now() - storeStart });
           results[i] = photo;
         } catch (err) {
           results[i] = null;
@@ -82,7 +86,25 @@ export function RoomCard({ room, mode, canRemove }) {
 
     await Promise.all(Array.from({ length: Math.min(LANES, files.length) }, lane));
     drain();
-    dispatch({ type: "UPLOAD_END" });
+
+    // Where the time actually went. Reported so a slow device can say what is
+    // slow about it, instead of us guessing from a fast one.
+    const sum = (key) => timings.reduce((n, t) => n + (t[key] || 0), 0);
+    dispatch({
+      type: "UPLOAD_END",
+      stats: timings.length
+        ? {
+            count: timings.length,
+            totalMs: Math.round(performance.now() - startedAt),
+            readMs: Math.round(sum("readMs")),
+            encodeMs: Math.round(sum("encodeMs")),
+            storeMs: Math.round(sum("storeMs")),
+            megabytes: +(sum("bytes") / 1048576).toFixed(1),
+            worker: timings.every((t) => t.path === "worker"),
+            lanes: LANES,
+          }
+        : null,
+    });
 
     if (failures.length > 0) {
       setError(

@@ -456,3 +456,20 @@
 @media (prefers-reduced-motion: reduce) {
   .upload-bar-fill { transition: none; }
 }
+
+/* Post-import timing breakdown, shown only when an import was slow. */
+.upload-banner-report {
+  border-left-color: var(--amber);
+}
+.upload-banner-report .upload-banner-head {
+  font-weight: 600;
+}
+
+/* Steps are unavailable while photos import. */
+.step-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.step-btn:disabled:hover {
+  color: var(--sidebar-text);
+}

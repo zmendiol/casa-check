@@ -4,6 +4,9 @@ import { useStore } from "../state/store.jsx";
 
 export function Sidebar() {
   const { state, dispatch } = useStore();
+  // Photos import in a second or two; letting someone wander off mid-import
+  // just invites them to wonder whether it is still going.
+  const importing = Boolean(state.upload);
 
   return (
     <nav className="sidebar" aria-label="Documentation steps">
@@ -25,6 +28,8 @@ export function Sidebar() {
                 type="button"
                 className={`step-btn${active ? " active" : ""}`}
                 aria-current={active ? "step" : undefined}
+                disabled={importing && !active}
+                title={importing && !active ? "Available once the photos finish" : undefined}
                 onClick={() => dispatch({ type: "SET_STEP", step: step.id })}
               >
                 <Icon />

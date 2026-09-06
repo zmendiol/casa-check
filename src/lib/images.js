@@ -34,8 +34,13 @@ export async function preparePhoto(file, options = {}) {
     throw new Error(`"${file.name}" is not an image file.`);
   }
 
-  // The single read.
+  // The single read. Timed, because on a phone this is the step most likely
+  // to dominate — iOS may transcode HEIC here, or fetch the original down
+  // from iCloud, neither of which any amount of decoding cleverness avoids.
+  const readStart = now();
   const buffer = await file.arrayBuffer();
+  const readMs = now() - readStart;
+
   const view = new DataView(buffer);
   const type = file.type || "image/jpeg";
 
@@ -45,6 +50,7 @@ export async function preparePhoto(file, options = {}) {
 
   // Preferred path: hand the bytes to a worker and keep the main thread free.
   // The buffer is transferred, so everything below re-reads the file instead.
+  const encodeStart = now();
   try {
     const encoded = await encodeInWorker({
       buffer,
@@ -53,7 +59,13 @@ export async function preparePhoto(file, options = {}) {
       targetHeight: target?.height,
       quality,
     });
-    if (encoded) return { blob: encoded, ...when };
+    if (encoded) {
+      return {
+        blob: encoded,
+        ...when,
+        timing: { readMs, encodeMs: now() - encodeStart, path: "worker", bytes: file.size },
+      };
+    }
   } catch {
     /* Worker unavailable or failed; fall through to the main thread. */
   }
@@ -61,7 +73,7 @@ export async function preparePhoto(file, options = {}) {
   // If the worker never took the buffer it is still intact, so reuse it —
   // re-reading is exactly the cost this function exists to avoid, and the
   // devices without workers are the ones that can least afford it.
-  return prepareOnMainThread(file, { maxEdge, quality, when, buffer });
+  return prepareOnMainThread(file, { maxEdge, quality, when, buffer, readMs });
 }
 
 /** Target dimensions for a known source size, or null when it is unknown. */
@@ -79,7 +91,12 @@ function targetSize(size, maxEdge) {
  * The fallback: same work, on the main thread. Used when workers or
  * OffscreenCanvas are unavailable (older Safari), or when a worker fails.
  */
-async function prepareOnMainThread(file, { maxEdge, quality, when, buffer }) {
+function now() {
+  return typeof performance !== "undefined" ? performance.now() : Date.now();
+}
+
+async function prepareOnMainThread(file, { maxEdge, quality, when, buffer, readMs = 0 }) {
+  const encodeStart = now();
   // A transferred ArrayBuffer is detached and reports zero length.
   const bytes = buffer && buffer.byteLength > 0 ? buffer : await file.arrayBuffer();
   const view = new DataView(bytes);
@@ -103,7 +120,12 @@ async function prepareOnMainThread(file, { maxEdge, quality, when, buffer }) {
     if (!ctx) throw new Error("This browser could not process the image.");
     ctx.drawImage(source, 0, 0, width, height);
 
-    return { blob: await encodeJpeg(canvas, quality), ...when };
+    const blob = await encodeJpeg(canvas, quality);
+    return {
+      blob,
+      ...when,
+      timing: { readMs, encodeMs: now() - encodeStart, path: "main", bytes: file.size },
+    };
   } finally {
     if (typeof source.close === "function") source.close();
     if (source.__objectUrl) URL.revokeObjectURL(source.__objectUrl);

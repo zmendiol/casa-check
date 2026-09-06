@@ -81,7 +81,7 @@ function createInitialState() {
   // `upload` is transient and deliberately not persisted. It lives here rather
   // than in RoomCard so an import stays visible — and keeps running — when the
   // user wanders off to another step while waiting.
-  return { property, rooms, step, mode, upload: null };
+  return { property, rooms, step, mode, upload: null, lastImport: null };
 }
 
 /* ------------------------------------------------------------------ *
@@ -105,9 +105,11 @@ export function reducer(state, action) {
       return state.upload ? { ...state, upload: { ...state.upload, done: action.done } } : state;
 
     case "UPLOAD_END":
-      return { ...state, upload: null };
+      return { ...state, upload: null, lastImport: action.stats || null };
 
     case "SET_STEP":
+      // Navigation is blocked while photos import; see Sidebar.
+      if (state.upload) return state;
       return { ...state, step: action.step };
 
     case "SET_MODE":

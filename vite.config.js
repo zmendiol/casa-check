@@ -10,6 +10,10 @@ export default defineConfig({
     // Needed to open the app on a phone for a real walkthrough test.
     host: true,
   },
+  preview: {
+    // Same, for testing a production build on a real device in a real browser.
+    host: true,
+  },
   build: {
     outDir: "dist",
     // jsPDF is only pulled in when a report is generated; keep it out of the
