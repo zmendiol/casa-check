@@ -41,7 +41,9 @@
   --font-body: "Inter", system-ui, sans-serif;
 
   /* Layout */
-  --sidebar-w: 222px;
+  /* 240 rather than 222: "Photo walkthrough" plus its count badge needs 173px
+     of the 178px this leaves, and at 222px the label wrapped to two lines. */
+  --sidebar-w: 240px;
   --radius: 6px;
   --radius-lg: 10px;
 }

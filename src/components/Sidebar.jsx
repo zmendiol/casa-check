@@ -1,4 +1,4 @@
-import { STEPS } from "../lib/constants.js";
+import { MODE_KEYS, STEPS } from "../lib/constants.js";
 import { HouseIcon, STEP_ICONS } from "../lib/icons.jsx";
 import { useStore } from "../state/store.jsx";
 
@@ -7,6 +7,14 @@ export function Sidebar() {
   // Photos import in a second or two; letting someone wander off mid-import
   // just invites them to wonder whether it is still going.
   const importing = Boolean(state.upload);
+
+  // A count beside the walkthrough step, so progress is visible from anywhere
+  // rather than only once you are on that screen.
+  const counts = {};
+  for (const key of MODE_KEYS) {
+    counts[key] = state.rooms.reduce((n, room) => n + room[key].length, 0);
+  }
+  const totalPhotos = counts.moveIn + counts.moveOut;
 
   return (
     <nav className="sidebar" aria-label="Documentation steps">
@@ -34,6 +42,11 @@ export function Sidebar() {
               >
                 <Icon />
                 {step.label}
+                {step.id === "capture" && totalPhotos > 0 && (
+                  <span className="step-count" aria-label={`${totalPhotos} photos`}>
+                    {totalPhotos}
+                  </span>
+                )}
               </button>
             </li>
           );

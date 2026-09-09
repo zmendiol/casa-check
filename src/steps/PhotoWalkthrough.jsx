@@ -7,6 +7,10 @@ export function PhotoWalkthrough() {
   const { state, dispatch } = useStore();
   const [newRoom, setNewRoom] = useState("");
 
+  // True until this pass has its first photo. Guidance belongs where someone
+  // is about to act, but only while they still need it.
+  const passIsEmpty = state.rooms.every((room) => room[state.mode].length === 0);
+
   function addRoom() {
     const name = newRoom.trim();
     if (!name) return;
@@ -36,6 +40,13 @@ export function PhotoWalkthrough() {
           </button>
         ))}
       </div>
+
+      {passIsEmpty && (
+        <p className="capture-hint">
+          <strong>What to capture in each room:</strong> walls and paint · floors and carpet ·
+          appliances · fixtures and blinds — plus a close-up of anything already damaged.
+        </p>
+      )}
 
       <div>
         {state.rooms.map((room) => (

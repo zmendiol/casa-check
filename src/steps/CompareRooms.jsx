@@ -22,8 +22,9 @@ export function CompareRooms() {
             {MODE_KEYS.map((mode) => {
               const photos = room[mode];
               return (
-                <div className="compare-col" key={mode}>
+                <div className={`compare-col compare-${mode}`} key={mode}>
                   <h4>
+                    <span className="pass-dot" aria-hidden="true" />
                     {MODES[mode].label.toUpperCase()} ({photos.length})
                   </h4>
                   {photos.length > 0 ? (
@@ -44,7 +45,9 @@ export function CompareRooms() {
                       ))}
                     </div>
                   ) : (
-                    <p className="empty-note">No photos yet</p>
+                    <p className="empty-note">
+                      No {MODES[mode].label.toLowerCase()} photos yet
+                    </p>
                   )}
                 </div>
               );

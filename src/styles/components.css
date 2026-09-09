@@ -84,9 +84,20 @@
 
 .photo-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
-  gap: 9px;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 10px;
   margin-bottom: 12px;
+}
+
+/* On a phone a 148px minimum leaves room for only one column inside the card,
+   which turns ten photos into ten screens of scrolling. Two columns beat one
+   large one for scanning a room; the tile height stays as it is, which reads
+   correctly at the ~145px width this produces. */
+@media (max-width: 720px) {
+  .photo-grid {
+    grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+    gap: 8px;
+  }
 }
 
 .photo-tile {
@@ -98,7 +109,7 @@
 }
 .photo-tile img {
   width: 100%;
-  height: 92px;
+  height: 118px;
   object-fit: cover;
   display: block;
 }
@@ -106,7 +117,7 @@
 /* Placeholder shown while the blob is read out of IndexedDB. */
 .photo-tile .photo-loading {
   width: 100%;
-  height: 92px;
+  height: 118px;
   background: var(--line-soft);
 }
 
@@ -472,4 +483,105 @@
 }
 .step-btn:disabled:hover {
   color: var(--sidebar-text);
+}
+
+
+/* ---------- Pass identity ----------
+   Move-in and move-out are the one comparison this product exists to make, so
+   they get a consistent colour: teal for the original condition, amber for the
+   later one. Used on the room counts and the compare columns alike. */
+
+.pass-counts {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.pass-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The pass you are currently editing reads as the foreground one. */
+.pass-count.is-active {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.pass-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--line);
+  flex-shrink: 0;
+}
+
+.pass-moveIn .pass-dot,
+.compare-moveIn h4 .pass-dot {
+  background: var(--teal);
+}
+
+.pass-moveOut .pass-dot,
+.compare-moveOut h4 .pass-dot {
+  background: var(--amber);
+}
+
+/* A pass with nothing in it should not look finished. */
+.pass-count:not(.is-active) .pass-dot {
+  opacity: 0.45;
+}
+
+/* The two columns carry the same neutral card styling, so on the one screen
+   whose entire job is comparing them, a rule in the pass colour is what tells
+   them apart at a glance — the photos themselves cannot. */
+.compare-col h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--line);
+}
+.compare-moveIn h4 { border-bottom-color: var(--teal); }
+.compare-moveOut h4 { border-bottom-color: var(--amber); }
+
+/* ---------- Empty-room guidance ---------- */
+
+.capture-hint {
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--muted);
+  border-left: 2px solid var(--line);
+  padding: 2px 0 2px 12px;
+  margin: 0 0 18px 0;
+  max-width: 68ch;
+}
+.capture-hint strong { color: var(--ink); font-weight: 600; }
+
+/* ---------- Sidebar progress ---------- */
+
+.step-count {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--sidebar-text);
+  background: rgba(255, 255, 255, 0.09);
+  border-radius: 10px;
+  padding: 1px 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.step-btn.active .step-count {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+@media (max-width: 720px) {
+  /* The mobile nav scrolls horizontally; a pushed-right badge would detach
+     from its label, so keep it beside the text. */
+  .step-count { margin-left: 6px; }
 }

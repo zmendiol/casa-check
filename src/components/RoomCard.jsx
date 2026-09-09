@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { MODES, MODE_KEYS } from "../lib/constants.js";
 import { PhotoTile } from "./PhotoTile.jsx";
 import { PhotoViewer } from "./PhotoViewer.jsx";
 import { recommendedLanes } from "../lib/encodeWorker.js";
@@ -191,8 +192,23 @@ export function RoomCard({ room, mode, canRemove }) {
         </div>
 
         <div className="room-actions">
-          <span className="photo-count">
-            {photos.length} photo{photos.length === 1 ? "" : "s"}
+          {/* Both passes, always. Showing only the active one meant you could
+              not tell whether a room's move-out was done without switching
+              modes — and the two passes are months apart, so by then you have
+              forgotten. The inactive pass is muted, not hidden. */}
+          <span className="pass-counts">
+            {MODE_KEYS.map((key) => (
+              <span
+                key={key}
+                className={`pass-count pass-${key}${key === mode ? " is-active" : ""}`}
+                title={`${MODES[key].label}: ${room[key].length} photo${
+                  room[key].length === 1 ? "" : "s"
+                }`}
+              >
+                <span className="pass-dot" aria-hidden="true" />
+                {MODES[key].label} {room[key].length}
+              </span>
+            ))}
           </span>
           {canRemove && (
             <button
