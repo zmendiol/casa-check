@@ -1,0 +1,86 @@
+# Casa Check — working notes for Claude Code
+
+Move-in / move-out condition documentation for college renters. React + Vite,
+no backend, everything stored on the user's own device.
+
+Live: https://zmendiol.github.io/casa-check/ (auto-deploys on push to `main`)
+
+## Commands
+
+```bash
+npm run dev                  # dev server, binds all interfaces for phone testing
+npm run build                # production build -> dist/
+npm run preview -- --host    # serve the built output on the LAN
+npm run build:single         # one self-contained HTML -> dist-single/
+```
+
+There is no test suite. Verify changes by driving the real app in a browser and
+watching the console; the photo pipeline in particular has failure modes that
+only appear on a real device.
+
+## Architecture in one pass
+
+- `src/state/storage.js` owns **all** persistence. Metadata (property details,
+  room names, photo notes/timestamps) in `localStorage`; photo bytes as Blobs in
+  IndexedDB. Adding a backend means reimplementing this file's exports and
+  nothing else.
+- `src/state/store.jsx` is a context + reducer. The reducer is pure; every
+  IndexedDB call happens in the action creators or components.
+- Photos are `{ id, timestamp, timestampSource, note }`. The bytes live in
+  IndexedDB under `id`.
+- `src/lib/images.js` turns a picked file into stored bytes + capture time.
+- `src/steps/` is one component per sidebar step; `src/App.jsx` maps step id to
+  screen.
+
+## Things that will bite you
+
+These are all fixed. Each was a real bug; please do not reintroduce them.
+
+**Never use `canvas.toBlob`.** Measured on a 12MP photo: reading 2ms, decoding
+36ms, and `toBlob` **1024ms** — for an encode that takes 13ms through the
+synchronous `toDataURL`. It also stops firing entirely when the page is
+backgrounded. Both encode paths deliberately avoid it. This single call was the
+difference between "instant" and "minutes" on a phone.
+
+**`overflow-x: hidden` on html/body breaks `position: sticky`.** It forces
+`overflow-y: auto`, making them scroll containers. `base.css` uses
+`overflow-x: clip` for exactly this reason; the mobile step nav depends on it.
+
+**`pruneOrphanPhotos` must list stored ids BEFORE reading the room list.** The
+other order leaves a window where a just-added photo is in neither set and has
+its bytes deleted. Pass it a getter, never a snapshot.
+
+**Timestamps are evidence, so provenance is not decoration.** `exif.js` reads
+`DateTimeOriginal`; failing that the file date; failing that upload time. Every
+photo records which, and the UI and PDF both say so. Never present an upload
+time as a capture time — that is the fastest way to get a renter's report
+dismissed.
+
+**No `capture="environment"` on the file input.** It forces the camera and makes
+the photo library unreachable, which defeats multi-select and EXIF entirely.
+
+**IndexedDB is unavailable on `file://`.** The single-file build must be served
+over http. `StorageWarning` detects and explains this.
+
+**Sandboxed iframes may block `blob:` workers.** The app falls back to the main
+thread automatically, but that fallback is much slower on weak devices. If
+import feels slow, check the timing line the app shows after any import over
+1.5s — it reports `background thread` vs `main thread`.
+
+## Design
+
+Do not redesign. The teal/amber/dark-sidebar system is deliberate and the user
+has asked for it to be preserved. All colors live in `src/styles/tokens.css`;
+edit them there and nowhere else. Class names deliberately match the original
+prototype (kept at `legacy/casa-check.html`) so visual drift is easy to spot.
+
+## Deploy
+
+Push to `main`. `.github/workflows/deploy.yml` builds with `npm ci` against the
+committed lockfile and publishes `dist/` to GitHub Pages. Nothing else to do.
+
+## Not legal advice
+
+The app makes claims about tenant rights. Keep the disclaimers, and keep the
+Arizona statute labelled as a worked example rather than implying it applies to
+whichever state the user selected.
