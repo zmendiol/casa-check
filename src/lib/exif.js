@@ -15,6 +15,7 @@ const TAG_EXIF_IFD_POINTER = 0x8769;
 const TAG_DATE_TIME_ORIGINAL = 0x9003;
 const TAG_OFFSET_TIME_ORIGINAL = 0x9011;
 const TAG_DATE_TIME = 0x0132;
+const TAG_ORIENTATION = 0x0112;
 
 /** EXIF lives in the first APP1 segment, so reading the head of the file is enough. */
 const HEAD_BYTES = 256 * 1024;
@@ -47,6 +48,44 @@ export function parseCaptureTime(view) {
   } catch {
     return null;
   }
+}
+
+/**
+ * Reads the EXIF Orientation tag (1–8), or null when absent.
+ *
+ * A phone held upright stores the JPEG on its side — 4032x3024 with a tag
+ * saying "rotate 90°" — and the pixel dimensions in the frame header are the
+ * UNROTATED ones. Anything that sizes a canvas from those dimensions without
+ * consulting this tag will squash every portrait photo into a landscape frame.
+ *
+ * Values 5–8 involve a 90° rotation and swap width with height.
+ */
+export function readOrientation(view) {
+  try {
+    const app1 = findApp1(view);
+    if (app1 == null) return null;
+    if (app1 + 8 > view.byteLength) return null;
+
+    const byteOrder = view.getUint16(app1);
+    const little = byteOrder === 0x4949;
+    if (!little && byteOrder !== 0x4d4d) return null;
+    if (view.getUint16(app1 + 2, little) !== 0x002a) return null;
+
+    const ifd0 = app1 + view.getUint32(app1 + 4, little);
+    const tags = readIfd(view, app1, ifd0, little);
+    const tag = tags?.get(TAG_ORIENTATION);
+    // SHORT, stored inline in the value field; read 16 bits, not the packed 32.
+    if (!tag || tag.type !== 3) return null;
+    const value = view.getUint16(tag.valueOffset, little);
+    return value >= 1 && value <= 8 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+/** True for the four orientations that rotate by 90°, swapping the axes. */
+export function orientationSwapsAxes(orientation) {
+  return orientation >= 5 && orientation <= 8;
 }
 
 /**

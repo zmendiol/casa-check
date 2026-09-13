@@ -1,5 +1,11 @@
 import { encodeInWorker } from "./encodeWorker.js";
-import { parseCaptureTime, readCaptureTime, readJpegDimensions } from "./exif.js";
+import {
+  orientationSwapsAxes,
+  parseCaptureTime,
+  readCaptureTime,
+  readJpegDimensions,
+  readOrientation,
+} from "./exif.js";
 import { MAX_PHOTO_EDGE, PHOTO_QUALITY } from "./constants.js";
 
 /**
@@ -45,7 +51,7 @@ export async function preparePhoto(file, options = {}) {
   const type = file.type || "image/jpeg";
 
   const when = resolveCaptureTimeFromView(view, file);
-  const size = readJpegDimensions(view);
+  const size = orientedSize(readJpegDimensions(view), readOrientation(view));
   const target = targetSize(size, maxEdge);
 
   // Preferred path: hand the bytes to a worker and keep the main thread free.
@@ -58,6 +64,7 @@ export async function preparePhoto(file, options = {}) {
       targetWidth: target?.width,
       targetHeight: target?.height,
       quality,
+      maxEdge,
     });
     if (encoded) {
       return {
@@ -74,6 +81,20 @@ export async function preparePhoto(file, options = {}) {
   // re-reading is exactly the cost this function exists to avoid, and the
   // devices without workers are the ones that can least afford it.
   return prepareOnMainThread(file, { maxEdge, quality, when, buffer, readMs });
+}
+
+/**
+ * The frame-header dimensions are pre-rotation. The decoder applies our resize
+ * targets AFTER honouring the EXIF rotation, so the targets must describe the
+ * rotated image or a portrait photo comes back squashed into a landscape box.
+ * Measured: requesting 1000x750 for a 4032x3024 file tagged Orientation=6
+ * yields a 1000x750 bitmap; requesting 750x1000 yields the correct 750x1000.
+ */
+function orientedSize(size, orientation) {
+  if (!size) return null;
+  return orientationSwapsAxes(orientation)
+    ? { width: size.height, height: size.width }
+    : size;
 }
 
 /** Target dimensions for a known source size, or null when it is unknown. */
@@ -102,7 +123,11 @@ async function prepareOnMainThread(file, { maxEdge, quality, when, buffer, readM
   const view = new DataView(bytes);
   const type = file.type || "image/jpeg";
   const blob = new Blob([bytes], { type });
-  const source = await decodeToFit(blob, readJpegDimensions(view), maxEdge);
+  const source = await decodeToFit(
+    blob,
+    orientedSize(readJpegDimensions(view), readOrientation(view)),
+    maxEdge
+  );
 
   try {
     // Usually already the target size, so this is a straight copy. The clamp
@@ -137,8 +162,8 @@ async function prepareOnMainThread(file, { maxEdge, quality, when, buffer, readM
  *
  * `resizeWidth`/`resizeHeight` are honoured during decode, so the decoder never
  * allocates the full-resolution bitmap. Aspect ratio is preserved because both
- * values are derived from the source's own ratio; EXIF rotation is applied
- * after scaling, which swaps the two but keeps the longest edge within bounds.
+ * values are derived from the source's own ratio — expressed in the ROTATED
+ * frame, since the decoder applies the resize after honouring EXIF rotation.
  */
 async function decodeToFit(blob, size, maxEdge) {
   const oriented = { imageOrientation: "from-image" };

@@ -18,7 +18,7 @@
 /* eslint-disable no-restricted-globals */
 function workerBody() {
   self.onmessage = async (event) => {
-    const { id, buffer, type, targetWidth, targetHeight, quality } = event.data;
+    const { id, buffer, type, targetWidth, targetHeight, quality, maxEdge } = event.data;
     try {
       const blob = new Blob([buffer], { type });
 
@@ -37,8 +37,18 @@ function workerBody() {
         bitmap = await createImageBitmap(blob);
       }
 
-      const width = targetWidth || bitmap.width;
-      const height = targetHeight || bitmap.height;
+      // Size the canvas from the bitmap the decoder actually produced, never
+      // from the requested targets. If anything upstream mis-predicts the
+      // oriented size, drawing into the target box would stretch the photo;
+      // drawing into the bitmap's own box can only ever copy it faithfully.
+      //
+      // Then clamp to maxEdge. Without a JPEG header (PNG screenshots, WebP)
+      // there are no targets and the decode is full size, so this is the only
+      // thing standing between a 1290x2796 screenshot and storing all of it.
+      const longest = Math.max(bitmap.width, bitmap.height);
+      const scale = maxEdge ? Math.min(1, maxEdge / longest) : 1;
+      const width = Math.max(1, Math.round(bitmap.width * scale));
+      const height = Math.max(1, Math.round(bitmap.height * scale));
 
       const canvas = new OffscreenCanvas(width, height);
       const ctx = canvas.getContext("2d");
@@ -120,7 +130,7 @@ function getPool() {
  *
  * @returns {Promise<Blob|null>}
  */
-export async function encodeInWorker({ buffer, type, targetWidth, targetHeight, quality }) {
+export async function encodeInWorker({ buffer, type, targetWidth, targetHeight, quality, maxEdge }) {
   const active = getPool();
   if (!active || active.broken) return null;
 
@@ -133,7 +143,7 @@ export async function encodeInWorker({ buffer, type, targetWidth, targetHeight, 
   return new Promise((resolve, reject) => {
     active.pending.set(id, { resolve, reject });
     try {
-      worker.postMessage({ id, buffer, type, targetWidth, targetHeight, quality }, [buffer]);
+      worker.postMessage({ id, buffer, type, targetWidth, targetHeight, quality, maxEdge }, [buffer]);
     } catch (err) {
       active.pending.delete(id);
       reject(err);

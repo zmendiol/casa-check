@@ -56,6 +56,19 @@ photo records which, and the UI and PDF both say so. Never present an upload
 time as a capture time — that is the fastest way to get a renter's report
 dismissed.
 
+**EXIF orientation: size targets must be computed in the ROTATED frame.** A
+phone held upright stores its JPEG on its side (4032x3024 + Orientation=6),
+and the frame-header dimensions are the unrotated ones. The decoder applies
+resize targets AFTER honouring the rotation, so targets derived from the raw
+header squash every portrait photo into a landscape box. `exif.js` reads the
+tag and `images.js` swaps the axes for orientations 5–8; the worker sizes its
+canvas from the bitmap it actually got, never from the targets. Photos stored
+before this fix are permanently squashed — they must be re-imported.
+
+**Non-JPEG images have no frame header, so no resize targets.** The worker
+must clamp to `maxEdge` from the decoded bitmap or a 1290x2796 screenshot is
+stored at full size.
+
 **No `capture="environment"` on the file input.** It forces the camera and makes
 the photo library unreachable, which defeats multi-select and EXIF entirely.
 
@@ -69,10 +82,22 @@ import feels slow, check the timing line the app shows after any import over
 
 ## Design
 
-Do not redesign. The teal/amber/dark-sidebar system is deliberate and the user
-has asked for it to be preserved. All colors live in `src/styles/tokens.css`;
-edit them there and nowhere else. Class names deliberately match the original
-prototype (kept at `legacy/casa-check.html`) so visual drift is easy to spot.
+The teal/amber/dark-sidebar identity is deliberate; keep it. The user's
+standing rule: **polish within the system is welcome, palette and layout
+changes need approval.** So: fix hierarchy, spacing, empty states, progress
+signals, and mobile behaviour freely; do not change the colours, the sidebar
+layout, or the overall structure without asking.
+
+All colours live in `src/styles/tokens.css`; edit them there and nowhere
+else. Teal means move-in / original condition, amber means move-out / later —
+used consistently on the room counts and the compare columns. Class names
+match the original prototype (kept at `legacy/casa-check.html`) so visual
+drift is easy to spot.
+
+Verify design changes at BOTH 375px and ~1300px. Several regressions this
+project has already had only appeared at one width: a sidebar badge wrapped
+its label on desktop but not mobile; larger thumbnails dropped phones to one
+column; a media-query rule sat before its base rule and silently never applied.
 
 ## Deploy
 
