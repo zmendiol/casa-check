@@ -12,11 +12,26 @@ npm run dev                  # dev server, binds all interfaces for phone testin
 npm run build                # production build -> dist/
 npm run preview -- --host    # serve the built output on the LAN
 npm run build:single         # one self-contained HTML -> dist-single/
+npm run verify               # headless visual check — REQUIRED before committing UI
 ```
 
-There is no test suite. Verify changes by driving the real app in a browser and
-watching the console; the photo pipeline in particular has failure modes that
-only appear on a real device.
+## Verifying (do this, every time, before committing anything visual)
+
+`npm run verify` builds the app, serves it, seeds real photos through the
+actual import path, drives all five steps at 375px and 1300px, and fails on
+console errors, uncaught exceptions, sideways scroll, a sidebar step wrapping
+onto two lines, or the photo viewer exceeding the screen. It writes full-page
+screenshots to `verify/` (gitignored).
+
+**Then open the screenshots and look at them.** The automated checks are the
+floor, not the ceiling — several past regressions (four identical hint boxes
+stacked down a page; tiles collapsing to one column on phones) were visible
+only to a human looking at the picture. Read at least `mobile-capture.png`,
+`desktop-capture.png`, and whichever screen you changed.
+
+There is no unit test suite; this is the test suite. Anything in the photo
+pipeline should additionally be tried on a real phone — some failure modes only
+appear there.
 
 ## Architecture in one pass
 
@@ -94,10 +109,10 @@ used consistently on the room counts and the compare columns. Class names
 match the original prototype (kept at `legacy/casa-check.html`) so visual
 drift is easy to spot.
 
-Verify design changes at BOTH 375px and ~1300px. Several regressions this
-project has already had only appeared at one width: a sidebar badge wrapped
-its label on desktop but not mobile; larger thumbnails dropped phones to one
-column; a media-query rule sat before its base rule and silently never applied.
+`npm run verify` covers both widths. Several regressions this project has had
+only appeared at one: a sidebar badge wrapped its label on desktop but not
+mobile; larger thumbnails dropped phones to one column; a media-query rule sat
+before its base rule and silently never applied. Read the screenshots.
 
 ## Deploy
 

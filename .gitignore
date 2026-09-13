@@ -10,3 +10,6 @@ casa-check-*.pdf
 casa-check-backup-*.json
 
 dist-single/
+
+# Headless verification screenshots
+verify/
