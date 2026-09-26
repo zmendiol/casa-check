@@ -140,6 +140,22 @@ Photos are added in the order they were picked, not the order they finish.
 Progress lives in the store, not in the room card, so it stays visible and
 keeps running when you move to another step.
 
+## State law
+
+The app ships **no per-state legal table, on purpose.** Deposit rules differ in
+every state, change without notice, and turn on details a table hides — Arizona
+counts fourteen *business* days; others count calendar days from a different
+starting event. A wrong deadline here would be worse than none, because it
+would be wrong with the app's authority behind it.
+
+Instead `RenterRights.jsx` names the three things that decide a case (the
+deadline and how it is counted, whether itemization is required, the penalty
+for missing it), links to a current search for the selected state, and lets the
+renter record what they found. `src/lib/deadline.js` then does the arithmetic
+the app *can* do safely — weekend-aware business-day counting — and the figure
+travels to the PDF cover attributed to the tenant, not asserted by the report.
+Public holidays are not modelled and the UI says so.
+
 ## Backup
 
 `Generate report -> Backup & data` exports the whole record — property details,
@@ -156,11 +172,10 @@ panel tells you whether the browser granted it.
   worker would make it work with no signal and installable to a home screen —
   worth having when documenting a basement unit. Deliberately not added yet:
   it introduces cache-invalidation behaviour that is easy to get subtly wrong.
-- **Real per-state law content.** `RenterRights.jsx` shows Arizona statute as a
-  worked example regardless of the state selected; the copy says so plainly.
-  `PRINCIPLES` is already an array, so per-state data would slot in naturally.
 - **Photo reordering**, and room-level notes.
-- **HEIC support.** iPhones set to "High Efficiency" produce HEIC files that
-  most browsers cannot decode; those photos are rejected with an error today.
+- **A HEIC decoder.** HEIC now fails with instructions rather than a shrug, and
+  adding from an iPhone works because iOS converts on upload. Decoding it on
+  the desktop would need ~2MB of WASM, lazily loaded — worth it only if people
+  actually hit this.
 
 Not legal advice. Renter protection laws vary by state.

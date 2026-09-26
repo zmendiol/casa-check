@@ -1,4 +1,5 @@
 import { MODE_KEYS } from "./constants.js";
+import { responseDue } from "./deadline.js";
 import { saveFile } from "./download.js";
 import { blobToDataUrl, TIMESTAMP_SOURCES } from "./images.js";
 import { getPhotoBlob } from "../state/storage.js";
@@ -64,6 +65,25 @@ export async function generateReport(record, onProgress = () => {}) {
     ["Move-out date", property.moveOutDate],
     ["Report generated", new Date().toLocaleString()],
   ];
+
+  // The deadline the renter looked up, and the date it lands on. Attributed to
+  // them, not asserted by the report — the app ships no per-state law.
+  if (property.depositDeadlineDays) {
+    const due = responseDue(
+      property.moveOutDate,
+      property.depositDeadlineDays,
+      property.depositDeadlineBasis
+    );
+    const basis = property.depositDeadlineBasis === "calendar" ? "calendar" : "business";
+    facts.push([
+      "Deposit deadline recorded by tenant",
+      `${property.depositDeadlineDays} ${basis} days after move-out` +
+        (property.depositLawSource ? ` (${property.depositLawSource})` : ""),
+    ]);
+    if (due) {
+      facts.push(["Landlord response due by", due.due.toLocaleDateString([], { dateStyle: "long" })]);
+    }
+  }
   for (const [label, value] of facts) {
     ensureSpace(LINE);
     doc.text(`${label}: ${value || "—"}`, MARGIN, y);

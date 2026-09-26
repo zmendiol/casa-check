@@ -31,6 +31,11 @@ const EMPTY_PROPERTY = {
   moveInDate: "",
   moveOutDate: "",
   rules: "",
+  // Looked up by the renter against their own state's current law, not
+  // shipped with the app. See src/lib/deadline.js for why.
+  depositDeadlineDays: "",
+  depositDeadlineBasis: "business",
+  depositLawSource: "",
 };
 
 function makeRoom(name) {

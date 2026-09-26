@@ -80,7 +80,27 @@ export async function preparePhoto(file, options = {}) {
   // If the worker never took the buffer it is still intact, so reuse it —
   // re-reading is exactly the cost this function exists to avoid, and the
   // devices without workers are the ones that can least afford it.
-  return prepareOnMainThread(file, { maxEdge, quality, when, buffer, readMs });
+  try {
+    return await prepareOnMainThread(file, { maxEdge, quality, when, buffer, readMs });
+  } catch (err) {
+    // HEIC is not rejected up front: iOS Safari decodes it natively, and
+    // uploading from an iPhone usually converts to JPEG on the way out. It
+    // only fails on desktop browsers, where the generic "could not be read"
+    // message leaves someone with no idea what to do about it.
+    if (looksLikeHeic(file)) {
+      throw new Error(
+        "This browser cannot read iPhone HEIC photos. Adding it from the iPhone itself usually " +
+          "works. Otherwise export a JPEG copy, or set Camera › Formats to Most Compatible before " +
+          "your next walkthrough."
+      );
+    }
+    throw err;
+  }
+}
+
+/** Matches by declared type and by extension; browsers disagree on the type. */
+function looksLikeHeic(file) {
+  return /image\/hei[cf]/i.test(file.type || "") || /\.hei[cf]$/i.test(file.name || "");
 }
 
 /**

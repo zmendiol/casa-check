@@ -17,14 +17,96 @@ function countWeakTimestamps(rooms) {
   return weak;
 }
 
+/**
+ * What the PDF will actually contain, and what is missing from it.
+ *
+ * This screen is the deliverable — the thing handed to a landlord or taken to
+ * small claims — so the useful question here is not "can I export" but "is
+ * what I am about to export complete". A gap found now is fixable; the same
+ * gap found during a dispute is not.
+ */
+function buildManifest(property, rooms) {
+  const count = (mode) => rooms.reduce((n, r) => n + r[mode].length, 0);
+  const notes = rooms.reduce(
+    (n, r) => n + [...r.moveIn, ...r.moveOut].filter((p) => p.note.trim()).length,
+    0
+  );
+  const moveIn = count("moveIn");
+  const moveOut = count("moveOut");
+  const roomsWithMoveIn = rooms.filter((r) => r.moveIn.length > 0).length;
+
+  const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+  // Date inputs hand back yyyy-mm-dd; show it the way the rest of the screen
+  // reads. Built locally rather than parsed as UTC, which slips a day west of
+  // Greenwich.
+  const readableDate = (value) => {
+    if (!value) return null;
+    const [y, m, d] = value.split("-").map(Number);
+    if (!y || !m || !d) return value;
+    return new Date(y, m - 1, d).toLocaleDateString([], { dateStyle: "long" });
+  };
+
+  return [
+    {
+      label: "Property",
+      value: property.communityName || property.address || null,
+      missing: "Name or address not set",
+      step: "setup",
+    },
+    {
+      label: "Move-in date",
+      value: readableDate(property.moveInDate),
+      missing: "Not set",
+      step: "setup",
+    },
+    {
+      label: "Move-out date",
+      value: readableDate(property.moveOutDate),
+      // Genuinely not needed yet during the move-in pass.
+      missing: "Not set yet",
+      step: "setup",
+      optional: true,
+    },
+    {
+      label: "Move-in photos",
+      value: moveIn ? `${plural(moveIn, "photo")} across ${plural(roomsWithMoveIn, "room")}` : null,
+      missing: "None yet — this is the evidence the report rests on",
+      step: "capture",
+    },
+    {
+      label: "Move-out photos",
+      value: moveOut ? plural(moveOut, "photo") : null,
+      missing: "None yet — add these when you move out",
+      step: "capture",
+      optional: true,
+    },
+    {
+      label: "Photo notes",
+      value: notes ? plural(notes, "note") : null,
+      missing: "None — optional, but they explain what a photo shows",
+      step: "capture",
+      optional: true,
+    },
+    {
+      label: "Property rules",
+      value: property.rules ? "On file" : null,
+      missing: "None on file — optional",
+      step: "setup",
+      optional: true,
+    },
+  ];
+}
+
 export function GenerateReport() {
-  const { state } = useStore();
+  const { state, dispatch } = useStore();
   const [status, setStatus] = useState(null); // { tone, message }
   const [busy, setBusy] = useState(false);
 
   const totalPhotos = countPhotos(state.rooms);
-  const summary = state.property.communityName || state.property.address || "No property set yet";
   const weak = countWeakTimestamps(state.rooms);
+  const manifest = buildManifest(state.property, state.rooms);
+  const gaps = manifest.filter((row) => !row.value && !row.optional).length;
 
   async function handleGenerate() {
     setBusy(true);
@@ -71,11 +153,37 @@ export function GenerateReport() {
       </p>
 
       <div className="report-cta">
-        <h3>Ready to export</h3>
+        <h3>{gaps > 0 ? "Almost ready" : "Ready to export"}</h3>
         <p>
-          {summary} · {totalPhotos} photo{totalPhotos === 1 ? "" : "s"} across {state.rooms.length}{" "}
-          room{state.rooms.length === 1 ? "" : "s"}
+          {gaps > 0
+            ? `${gaps} thing${gaps === 1 ? "" : "s"} still missing from the report. You can export
+               anyway, but it will be stronger with ${gaps === 1 ? "it" : "them"}.`
+            : "Everything below goes into the PDF."}
         </p>
+
+        <dl className="manifest">
+          {manifest.map((row) => (
+            <div key={row.label} className="manifest-row">
+              <dt>{row.label}</dt>
+              <dd>
+                {row.value ? (
+                  row.value
+                ) : (
+                  // Missing entries jump to the screen that fixes them —
+                  // naming a gap without offering the fix is just nagging.
+                  <button
+                    type="button"
+                    className="manifest-gap"
+                    data-optional={row.optional ? "" : undefined}
+                    onClick={() => dispatch({ type: "SET_STEP", step: row.step })}
+                  >
+                    {row.missing}
+                  </button>
+                )}
+              </dd>
+            </div>
+          ))}
+        </dl>
 
         <button type="button" className="btn btn-amber" onClick={handleGenerate} disabled={busy}>
           {busy ? "Building PDF…" : "Download PDF report"}

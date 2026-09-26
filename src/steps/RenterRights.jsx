@@ -1,3 +1,4 @@
+import { DEADLINE_CAVEAT, responseDue } from "../lib/deadline.js";
 import { useStore } from "../state/store.jsx";
 
 /** State-agnostic principles. Kept as data so adding one is a one-line change. */
@@ -25,8 +26,18 @@ const PRINCIPLES = [
 ];
 
 export function RenterRights() {
-  const { state } = useStore();
+  const { state, dispatch } = useStore();
   const stateName = state.property.stateName || "your state";
+  const { depositDeadlineDays, depositDeadlineBasis, depositLawSource, moveOutDate } =
+    state.property;
+
+  const set = (field) => (e) =>
+    dispatch({ type: "SET_PROPERTY_FIELD", field, value: e.target.value });
+
+  const due = responseDue(moveOutDate, depositDeadlineDays, depositDeadlineBasis);
+  const search = `https://www.google.com/search?q=${encodeURIComponent(
+    `${stateName} security deposit return law landlord deadline itemized statement`
+  )}`;
 
   return (
     <>
@@ -67,10 +78,93 @@ export function RenterRights() {
         </ul>
       </div>
 
-      <p className="fine-print">
-        Arizona is shown as a worked example. Search &ldquo;{stateName} security deposit law&rdquo;
-        for the specifics that apply to you.
-      </p>
+      {/* The app deliberately ships no per-state table. Deposit rules differ
+          everywhere, change without notice, and turn on details a table hides.
+          What it can do is name exactly what to find, help find it, and keep
+          what the renter found so it reaches the report. */}
+      <div className="section-label">Find the rule for {stateName}</div>
+      <div className="room-section">
+        <p className="card-body">
+          Casa Check does not ship the law for each state — it changes, and a wrong deadline here
+          would be worse than none. Three things decide your case, and all three are in your
+          state&rsquo;s statute:
+        </p>
+        <ol className="lookup-list">
+          <li>
+            <strong>The deadline.</strong> How long the landlord has after move-out, and whether it
+            counts business days or calendar days.
+          </li>
+          <li>
+            <strong>Whether an itemized statement is required</strong> — and whether a vague one
+            counts.
+          </li>
+          <li>
+            <strong>The penalty for missing it.</strong> Some states owe you more than the deposit
+            when a landlord is late.
+          </li>
+        </ol>
+        <p>
+          <a className="lookup-link" href={search} target="_blank" rel="noopener noreferrer">
+            Search the current law for {stateName}
+          </a>
+        </p>
+
+        <div className="section-label">Record what you find</div>
+        <p className="card-body">
+          Kept with your record and printed on the report, so the deadline travels with the
+          evidence.
+        </p>
+        <div className="field-row">
+          <div className="field">
+            <label htmlFor="deadlineDays">Landlord must respond within</label>
+            <input
+              id="deadlineDays"
+              type="text"
+              inputMode="numeric"
+              placeholder="e.g. 14"
+              value={depositDeadlineDays}
+              onChange={set("depositDeadlineDays")}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="deadlineBasis">Counted as</label>
+            <select
+              id="deadlineBasis"
+              value={depositDeadlineBasis}
+              onChange={set("depositDeadlineBasis")}
+            >
+              <option value="business">business days</option>
+              <option value="calendar">calendar days</option>
+            </select>
+          </div>
+        </div>
+        <div className="field field-wide">
+          <label htmlFor="lawSource">Where you found it</label>
+          <input
+            id="lawSource"
+            type="text"
+            placeholder="e.g. A.R.S. §33-1321, or a link"
+            value={depositLawSource}
+            onChange={set("depositLawSource")}
+          />
+        </div>
+
+        {due && (
+          <p className="deadline-result">
+            From your move-out date, that is{" "}
+            <strong>
+              {due.due.toLocaleDateString([], { dateStyle: "long" })}
+            </strong>{" "}
+            — {depositDeadlineDays} {due.basis} after move-out.
+            <span className="deadline-caveat">{DEADLINE_CAVEAT}</span>
+          </p>
+        )}
+        {!due && depositDeadlineDays && !moveOutDate && (
+          <p className="status-line" data-tone="muted">
+            Add your move-out date on Property setup and this will work out the date for you.
+          </p>
+        )}
+      </div>
     </>
   );
 }
