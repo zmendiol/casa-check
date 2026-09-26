@@ -20,6 +20,15 @@ export function PropertySetup() {
         Start here before your move-in walkthrough. This info goes on the cover page of your report.
       </p>
 
+      {/* Stated before anything is typed, because that is when someone decides
+          whether to photograph where they live. Scoped to what the user enters:
+          the page itself does fetch webfonts, so a blanket "nothing is sent
+          anywhere" would be an overclaim. */}
+      <p className="privacy-note">
+        <strong>Everything stays on this device.</strong> Your photos, notes and property details
+        are not uploaded, and there is no account to create.
+      </p>
+
       <div className="section-label">Where you&rsquo;re living</div>
       <div className="field-row">
         <div className="field">

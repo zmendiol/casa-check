@@ -132,8 +132,9 @@ export function DataPanel() {
     <div className="data-panel">
       <h3>Your data</h3>
       <p>
-        Everything is stored in this browser only. If you clear your browsing data or lose this
-        device, the record goes with it — export a backup you can keep somewhere else.
+        Your photos and notes live on this browser only. Nothing is uploaded, there is no account,
+        and no one else can see them. That is also the catch: clearing your browsing data or losing
+        this device loses the record, so keep a backup somewhere else.
       </p>
 
       <div className="data-actions">
