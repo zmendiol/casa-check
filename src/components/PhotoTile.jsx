@@ -1,7 +1,9 @@
 import { usePhotoUrl } from "../hooks/usePhotoUrl.js";
 import { TIMESTAMP_SOURCES } from "../lib/images.js";
 
-const FULL_STAMP = { dateStyle: "medium", timeStyle: "short" };
+// Compact enough for a tile, and keeps the year — a record can span one
+// (move-in August, move-out May).
+const TILE_STAMP = { dateStyle: "short", timeStyle: "short" };
 
 function stamp(timestamp, options) {
   const date = new Date(timestamp);
@@ -44,7 +46,7 @@ export function PhotoTile({ photo, roomName, editable = false, onOpen, onDelete,
           type="button"
           className="photo-del"
           onClick={onDelete}
-          aria-label={`Delete photo taken ${stamp(photo.timestamp, FULL_STAMP)}`}
+          aria-label={`Delete photo taken ${stamp(photo.timestamp, TILE_STAMP)}`}
           title="Delete photo"
         >
           ×
@@ -52,8 +54,8 @@ export function PhotoTile({ photo, roomName, editable = false, onOpen, onDelete,
       )}
 
       <div className="photo-meta">
-        {editable ? stamp(photo.timestamp, FULL_STAMP) : stamp(photo.timestamp)}
-        {qualifier && <span className="photo-source"> · {qualifier}</span>}
+        {editable ? stamp(photo.timestamp, TILE_STAMP) : stamp(photo.timestamp)}
+        {qualifier && <span className="photo-source">{qualifier}</span>}
       </div>
 
       {editable ? (

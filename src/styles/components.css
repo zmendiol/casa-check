@@ -257,7 +257,12 @@
 
 /* ---------- Photo provenance ---------- */
 
-.photo-source { color: var(--amber-text); }
+/* Its own line, on purpose. Trailing the timestamp it wrapped mid-phrase and
+   read as a layout bug rather than a qualifier. */
+.photo-source {
+  display: block;
+  color: var(--amber-text);
+}
 
 /* Wrapper that makes a thumbnail clickable without changing how it looks. */
 .photo-open {
@@ -591,4 +596,22 @@
   /* The mobile nav scrolls horizontally; a pushed-right badge would detach
      from its label, so keep it beside the text. */
   .step-count { margin-left: 6px; }
+}
+
+
+/* ---------- Room header on phones ----------
+   The pass counts left too little room for the name, so "Living Room" broke
+   across two lines. Title gets the full width; the counts follow beneath it.
+
+   These live here, not in layout.css, and that is load-bearing: components.css
+   imports last, and .room-title-wrap's base `flex: 1` is defined above. The
+   same rules in layout.css lose the cascade at equal specificity and silently
+   do nothing. */
+@media (max-width: 720px) {
+  .room-head {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .room-title-wrap { flex: 1 1 100%; }
+  .room-actions { margin-left: auto; }
 }
