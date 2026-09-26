@@ -7,7 +7,10 @@
   --ink: #12141A;
   --paper: #FAFAF8;
   --card: #FFFFFF;
-  --muted: #6B6F76;
+  /* Darkened from #6B6F76, which measured 4.31:1 on --line-soft and failed
+      WCAG AA. This passes on every ground it is used against: 5.44 on paper,
+      4.85 on line-soft, 5.68 on card. */
+  --muted: #63676E;
 
   /* Brand */
   --teal: #0E6B5C;
@@ -25,8 +28,13 @@
 
   /* --- Previously inlined, now named --- */
   --amber-dark: #BF7A1F;
+  /* Amber is a fill colour; as 9.5px text on white it measured 3.49:1. This
+     is the text-safe variant at 5.08:1. Do not use it for fills. */
+  --amber-text: #9C6115;
   --danger: #C0392B;
-  --sidebar-muted: #5A5E67;
+  /* Was #5A5E67 at 2.78:1 against the sidebar — the least readable text in
+     the app happened to be the legal disclaimer. Now 4.57:1. */
+  --sidebar-muted: #7B808B;
   --panel-text: #E4E6EA;
 
   /* Teal at low opacity, used for the active nav tint and focus rings */

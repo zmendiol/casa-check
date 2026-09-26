@@ -8,6 +8,10 @@
  * anything a human would have caught by looking: console errors, uncaught
  * exceptions, sideways scroll, a sidebar step wrapping onto two lines.
  *
+ * It also runs axe against every screen. Contrast, form labels, button names
+ * and heading order are the kind of thing that is invisible in a screenshot
+ * and obvious to anyone using a screen reader.
+ *
  *   npm run verify
  *
  * Then look at verify/*.png before committing. The screenshots are the point;
@@ -17,6 +21,7 @@
 import { mkdirSync, rmSync } from "node:fs";
 import { build, preview } from "vite";
 import { chromium } from "playwright";
+import AxeBuilder from "@axe-core/playwright";
 
 const OUT = "verify";
 const PORT = 4183;
@@ -81,8 +86,19 @@ try {
         problems.push(`${vp.name}/${step}: sidebar step wrapped: ${checks.wrappedSteps.join(", ")}`);
       }
 
+      // Serious, objective rules only. Colour-contrast included: this palette
+      // leans on muted greys, which is exactly where contrast quietly fails.
+      const axe = await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+        .analyze();
+      for (const v of axe.violations) {
+        const where = v.nodes[0]?.target?.join(" ") ?? "?";
+        problems.push(`${vp.name}/${step}: a11y [${v.id}] ${v.help} — ${where}`);
+      }
+
       await page.screenshot({ path: `${OUT}/${vp.name}-${step}.png`, fullPage: true });
-      console.log(`  ${vp.name.padEnd(7)} ${step.padEnd(8)} ${checks.title}`);
+      const a11y = axe.violations.length ? `${axe.violations.length} a11y` : "a11y ok";
+      console.log(`  ${vp.name.padEnd(7)} ${step.padEnd(8)} ${checks.title.padEnd(32)} ${a11y}`);
     }
 
     // The viewer, which goes full-bleed on mobile and must fit the screen.

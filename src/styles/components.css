@@ -257,7 +257,7 @@
 
 /* ---------- Photo provenance ---------- */
 
-.photo-source { color: var(--amber-dark); }
+.photo-source { color: var(--amber-text); }
 
 /* Wrapper that makes a thumbnail clickable without changing how it looks. */
 .photo-open {

@@ -143,7 +143,10 @@ input[type="file"] { display: none; }
 .btn-ghost { background: var(--line-soft); color: var(--ink); }
 .btn-ghost:hover:not(:disabled) { background: var(--line); }
 
-.btn-amber { background: var(--amber); color: #fff; }
+/* Dark text, not white. White on this amber is 2.67:1 — well under AA — and
+   darkening the amber enough to carry white text would have visibly changed
+   the brand colour. Ink on the unchanged amber is 6.89:1. */
+.btn-amber { background: var(--amber); color: var(--ink); }
 .btn-amber:hover:not(:disabled) { background: var(--amber-dark); }
 
 .icon-btn {

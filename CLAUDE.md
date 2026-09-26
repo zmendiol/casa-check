@@ -20,8 +20,17 @@ npm run verify               # headless visual check — REQUIRED before committ
 `npm run verify` builds the app, serves it, seeds real photos through the
 actual import path, drives all five steps at 375px and 1300px, and fails on
 console errors, uncaught exceptions, sideways scroll, a sidebar step wrapping
-onto two lines, or the photo viewer exceeding the screen. It writes full-page
+onto two lines, the photo viewer exceeding the screen, or any WCAG AA
+violation found by axe — colour contrast included. It writes full-page
 screenshots to `verify/` (gitignored).
+
+For anything visual, also read `.claude/skills/design-review`. It holds the
+judgment this file does not: what the interface is for, what restraint means
+here, and the colour and contrast rules.
+
+Playwright MCP is configured in `.mcp.json` for interactive browsing when the
+fixed script is not enough — exploring a bug, checking a hover state. `verify`
+remains the gate; the MCP is for investigation.
 
 **Then open the screenshots and look at them.** The automated checks are the
 floor, not the ceiling — several past regressions (four identical hint boxes
