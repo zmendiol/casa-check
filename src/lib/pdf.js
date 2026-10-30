@@ -1,5 +1,5 @@
 import { MODE_KEYS } from "./constants.js";
-import { responseDue } from "./deadline.js";
+import { parseDeadlineDays, responseDue } from "./deadline.js";
 import { saveFile } from "./download.js";
 import { blobToDataUrl, TIMESTAMP_SOURCES } from "./images.js";
 import { getPhotoBlob } from "../state/storage.js";
@@ -61,14 +61,17 @@ export async function generateReport(record, onProgress = () => {}) {
     ["Property", property.communityName],
     ["Address", property.address],
     ["State", property.stateName],
-    ["Move-in date", property.moveInDate],
-    ["Move-out date", property.moveOutDate],
+    ["Move-in date", coverDate(property.moveInDate)],
+    ["Move-out date", coverDate(property.moveOutDate)],
     ["Report generated", new Date().toLocaleString()],
   ];
 
   // The deadline the renter looked up, and the date it lands on. Attributed to
   // them, not asserted by the report — the app ships no per-state law.
-  if (property.depositDeadlineDays) {
+  // Validated, not merely truthy. The field is free text, and "abc business
+  // days after move-out" once printed on a document meant for a landlord.
+  const deadlineDays = parseDeadlineDays(property.depositDeadlineDays);
+  if (deadlineDays !== null) {
     const due = responseDue(
       property.moveOutDate,
       property.depositDeadlineDays,
@@ -77,17 +80,22 @@ export async function generateReport(record, onProgress = () => {}) {
     const basis = property.depositDeadlineBasis === "calendar" ? "calendar" : "business";
     facts.push([
       "Deposit deadline recorded by tenant",
-      `${property.depositDeadlineDays} ${basis} days after move-out` +
+      `${deadlineDays} ${basis} days after move-out` +
         (property.depositLawSource ? ` (${property.depositLawSource})` : ""),
     ]);
     if (due) {
       facts.push(["Landlord response due by", due.due.toLocaleDateString([], { dateStyle: "long" })]);
     }
   }
+  // Wrapped, not drawn as one line. A long address measured 567pt against a
+  // 516pt printable width and simply ran off the edge — losing the very thing
+  // that identifies which property the evidence is about.
   for (const [label, value] of facts) {
-    ensureSpace(LINE);
-    doc.text(`${label}: ${value || "—"}`, MARGIN, y);
-    y += LINE;
+    for (const line of doc.splitTextToSize(`${label}: ${value || "—"}`, contentW)) {
+      ensureSpace(LINE);
+      doc.text(line, MARGIN, y);
+      y += LINE;
+    }
   }
   y += 10;
 
@@ -254,6 +262,14 @@ async function measure(blob, dataUrl) {
 function fit(w, h, boxW, boxH) {
   const scale = Math.min(boxW / w, boxH / h, 1);
   return { width: Math.round(w * scale), height: Math.round(h * scale) };
+}
+
+/** yyyy-mm-dd from a date input, read back the way a person writes it. */
+function coverDate(value) {
+  if (!value) return "";
+  const [y, m, d] = value.split("-").map(Number);
+  if (!y || !m || !d) return value;
+  return new Date(y, m - 1, d).toLocaleDateString([], { dateStyle: "long" });
 }
 
 function formatStamp(timestamp) {

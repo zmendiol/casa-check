@@ -1,4 +1,4 @@
-import { DEADLINE_CAVEAT, responseDue } from "../lib/deadline.js";
+import { DEADLINE_CAVEAT, MAX_DEADLINE_DAYS, parseDeadlineDays, responseDue } from "../lib/deadline.js";
 import { useStore } from "../state/store.jsx";
 
 /** State-agnostic principles. Kept as data so adding one is a one-line change. */
@@ -35,6 +35,10 @@ export function RenterRights() {
     dispatch({ type: "SET_PROPERTY_FIELD", field, value: e.target.value });
 
   const due = responseDue(moveOutDate, depositDeadlineDays, depositDeadlineBasis);
+  // Typed something, but nothing usable came of it — say so rather than
+  // leaving the result area mysteriously blank.
+  const unusable =
+    depositDeadlineDays.trim() !== "" && parseDeadlineDays(depositDeadlineDays) === null;
   const search = `https://www.google.com/search?q=${encodeURIComponent(
     `${stateName} security deposit return law landlord deadline itemized statement`
   )}`;
@@ -159,7 +163,13 @@ export function RenterRights() {
             <span className="deadline-caveat">{DEADLINE_CAVEAT}</span>
           </p>
         )}
-        {!due && depositDeadlineDays && !moveOutDate && (
+        {unusable && (
+          <p className="status-line" data-tone="error" role="alert">
+            Enter a whole number of days, up to {MAX_DEADLINE_DAYS}. This figure also goes on the
+            report, so it is left off rather than printed as typed.
+          </p>
+        )}
+        {!unusable && !due && depositDeadlineDays && !moveOutDate && (
           <p className="status-line" data-tone="muted">
             Add your move-out date on Property setup and this will work out the date for you.
           </p>
