@@ -210,6 +210,16 @@ async function seed(page) {
   );
   await drop(1, [[1400, 1000, "SOFA", "#0E6B5C"]], "(r) => r.rooms[1].moveIn.length === 1");
 
+  // A long room name, because user-entered names have no length limit and a
+  // long one has already broken PDF section headings once.
+  await page.evaluate(() => {
+    const rec = JSON.parse(localStorage.getItem("casa-check:record"));
+    rec.rooms[2].name = "Upstairs Back Bedroom Closet and Storage Area";
+    localStorage.setItem("casa-check:record", JSON.stringify(rec));
+  });
+  await page.reload();
+  await page.waitForSelector("input[type=file]", { state: "attached" });
+
   // One move-out photo with a note, so the compare screen has both sides.
   await page.evaluate(() => {
     localStorage.setItem("casa-check:ui", JSON.stringify({ step: "capture", mode: "moveOut" }));

@@ -9,7 +9,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "build:single": "vite build --config vite.config.singlefile.js && node scripts/inline.mjs",
-    "verify": "node scripts/verify.mjs"
+    "verify": "node scripts/verify.mjs",
+    "check:pdf": "node scripts/check-pdf.mjs"
   },
   "dependencies": {
     "jspdf": "^2.5.2",

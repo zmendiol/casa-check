@@ -145,11 +145,23 @@ export async function generateReport(record, onProgress = () => {}) {
   let done = 0;
 
   for (const { room, mode, photos } of queue) {
-    ensureSpace(40 + IMG_BOX_H * 0.5);
+    // Wrapped, like the cover block, and for a worse reason: room names are
+    // user-entered with no length limit, and at 14pt bold a long one pushed
+    // "— Move-In" off the right edge — losing the very label that says which
+    // half of the comparison the section is. Measure after setting the font,
+    // or splitTextToSize sizes against the wrong metrics.
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
-    doc.text(`${room.name} — ${MODE_LABEL[mode]}`, MARGIN, y);
-    y += 20;
+    const headingLines = doc.splitTextToSize(`${room.name} — ${MODE_LABEL[mode]}`, contentW);
+
+    // Keep the heading with at least part of its first photo rather than
+    // stranding it alone at the foot of a page.
+    ensureSpace(headingLines.length * 18 + 20 + IMG_BOX_H * 0.5);
+    for (const line of headingLines) {
+      doc.text(line, MARGIN, y);
+      y += 18;
+    }
+    y += 2;
 
     for (const photo of photos) {
       done += 1;

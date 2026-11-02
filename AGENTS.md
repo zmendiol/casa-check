@@ -13,6 +13,7 @@ npm run build                # production build -> dist/
 npm run preview -- --host    # serve the built output on the LAN
 npm run build:single         # one self-contained HTML -> dist-single/
 npm run verify               # headless visual check — REQUIRED before committing UI
+npm run check:pdf            # measures the PDF for lines that run off the page
 ```
 
 ## Verifying (do this, every time, before committing anything visual)
@@ -92,6 +93,14 @@ before this fix are permanently squashed — they must be re-imported.
 **Non-JPEG images have no frame header, so no resize targets.** The worker
 must clamp to `maxEdge` from the decoded bitmap or a 1290x2796 screenshot is
 stored at full size.
+
+**jsPDF draws past the page edge without complaining.** Any `doc.text` for
+content of unknown length must go through `splitTextToSize` against
+`contentW`, or the tail is silently lost. This has bitten twice: a property
+address (567pt against a 516pt printable width) and a room section heading
+(557pt), where what vanished was the "— Move-In" label identifying the pass.
+`npm run check:pdf` measures every drawn run and fails on any that overflows;
+it is verified to catch the regression, not just to pass.
 
 **No `capture="environment"` on the file input.** It forces the camera and makes
 the photo library unreachable, which defeats multi-select and EXIF entirely.
