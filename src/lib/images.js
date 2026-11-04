@@ -2,7 +2,6 @@ import { encodeInWorker } from "./encodeWorker.js";
 import {
   orientationSwapsAxes,
   parseCaptureTime,
-  readCaptureTime,
   readJpegDimensions,
   readOrientation,
 } from "./exif.js";
@@ -315,22 +314,6 @@ function resolveCaptureTimeFromView(view, file) {
     }
   }
 
-  return { timestamp: new Date().toISOString(), timestampSource: "upload" };
-}
-
-/** Kept for callers holding only a File they have not read yet. */
-export async function resolveCaptureTime(file) {
-  const exif = await readCaptureTime(file);
-  if (exif) return { timestamp: exif.date.toISOString(), timestampSource: "camera" };
-
-  const modified = file.lastModified;
-  if (modified && Number.isFinite(modified)) {
-    const age = Date.now() - modified;
-    const date = new Date(modified);
-    if (age > 2 * 60 * 1000 && date.getFullYear() >= 1995) {
-      return { timestamp: date.toISOString(), timestampSource: "file" };
-    }
-  }
   return { timestamp: new Date().toISOString(), timestampSource: "upload" };
 }
 

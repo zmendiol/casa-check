@@ -41,10 +41,22 @@ export function PhotoWalkthrough() {
         ))}
       </div>
 
-      {passIsEmpty && (
+      {/* Two notes sharing one slot, so neither competes with the other: what
+          to shoot before there are photos, and what not to do once there are. */}
+      {passIsEmpty ? (
         <p className="capture-hint">
           <strong>What to capture in each room:</strong> walls and paint · floors and carpet ·
           appliances · fixtures and blinds — plus a close-up of anything already damaged.
+        </p>
+      ) : (
+        // Casa Check keeps a resized copy in this browser. The full-resolution
+        // originals in the camera roll are better evidence and back themselves
+        // up; deleting them to free space would leave the smaller copy as the
+        // only one, in the one place that can lose it.
+        <p className="capture-hint">
+          <strong>Keep the originals too.</strong> Casa Check stores its own smaller copies here.
+          Your phone keeps the full-resolution versions — and usually backs them up — so leave them
+          in your camera roll rather than clearing them for space.
         </p>
       )}
 

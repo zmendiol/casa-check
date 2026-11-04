@@ -150,8 +150,3 @@ export async function encodeInWorker({ buffer, type, targetWidth, targetHeight, 
     }
   });
 }
-
-/** True when the worker path is usable, for callers that want to log it. */
-export function workersAvailable() {
-  return Boolean(getPool());
-}

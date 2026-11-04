@@ -17,22 +17,6 @@ const TAG_OFFSET_TIME_ORIGINAL = 0x9011;
 const TAG_DATE_TIME = 0x0132;
 const TAG_ORIENTATION = 0x0112;
 
-/** EXIF lives in the first APP1 segment, so reading the head of the file is enough. */
-const HEAD_BYTES = 256 * 1024;
-
-/**
- * @returns {Promise<{date: Date, offset: string|null} | null>}
- */
-export async function readCaptureTime(file) {
-  try {
-    const buf = await file.slice(0, HEAD_BYTES).arrayBuffer();
-    return parseCaptureTime(new DataView(buf));
-  } catch {
-    // A malformed header must never block adding a photo.
-    return null;
-  }
-}
-
 /**
  * Same, but for a file already read into memory. Photo import reads each file
  * exactly once — on iOS a read can trigger an OS-level HEIC transcode, so

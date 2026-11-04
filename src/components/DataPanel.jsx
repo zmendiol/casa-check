@@ -136,6 +136,11 @@ export function DataPanel() {
         and no one else can see them. That is also the catch: clearing your browsing data or losing
         this device loses the record, so keep a backup somewhere else.
       </p>
+      <p>
+        Keep your original photos as well. Casa Check saves its own smaller copies; the
+        full-resolution originals on your phone are sharper evidence and back themselves up, so
+        they are the safety net if anything here goes missing.
+      </p>
 
       <div className="data-actions">
         <button type="button" className="btn btn-primary" onClick={handleExport} disabled={busy}>
