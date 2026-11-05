@@ -759,3 +759,19 @@
   .backup-nudge-actions { width: 100%; }
   .backup-nudge-actions .btn { flex: 1 1 auto; justify-content: center; }
 }
+
+/* ---------- Calendar reminder offer ---------- */
+
+.reminder-offer {
+  border-top: 1px solid var(--line-soft);
+  padding-top: 14px;
+  margin: 4px 0 26px 0;
+  max-width: 64ch;
+}
+.reminder-offer p {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 0 0 10px 0;
+}
+.reminder-offer strong { color: var(--ink); font-weight: 600; }

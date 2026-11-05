@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { buildMoveOutReminder, downloadMoveOutReminder } from "../lib/calendar.js";
 import { US_STATES } from "../lib/constants.js";
 import { useStore } from "../state/store.jsx";
 
@@ -78,6 +80,12 @@ export function PropertySetup() {
         </div>
       </div>
 
+      {/* Offered here because this is the moment the date exists, and it is
+          day one — months before the reminder is any use. The in-app prompt
+          only reaches someone who opens the app, which in May is precisely
+          what they will not do. */}
+      <ReminderOffer property={property} />
+
       <div className="section-label">Property rules &amp; move-out standards</div>
       <div className="field field-wide">
         <label htmlFor="rules">Paste or type this property&rsquo;s specific requirements (optional)</label>
@@ -115,5 +123,56 @@ export function PropertySetup() {
         Save &amp; continue to walkthrough
       </button>
     </>
+  );
+}
+
+/**
+ * Offers a calendar entry for the move-out walkthrough.
+ *
+ * Appears only once a usable move-out date exists — there is nothing to
+ * schedule before that, and an impossible date parses to nothing.
+ */
+function ReminderOffer({ property }) {
+  const [status, setStatus] = useState(null);
+  const reminder = buildMoveOutReminder(property);
+
+  if (!reminder) return null;
+
+  async function handleDownload() {
+    try {
+      const { status: saveStatus } = await downloadMoveOutReminder(property);
+      setStatus(
+        saveStatus === "declined"
+          ? { tone: "muted", message: "Save cancelled." }
+          : {
+              tone: "success",
+              message: `Saved. Open the file to add it to your calendar — it will remind you on ${reminder.remindOn.toLocaleDateString(
+                [],
+                { dateStyle: "long" }
+              )}.`,
+            }
+      );
+    } catch (err) {
+      setStatus({ tone: "error", message: err.message });
+    }
+  }
+
+  return (
+    <div className="reminder-offer">
+      <p>
+        <strong>Set a reminder for the move-out walkthrough.</strong> The report compares move-in
+        against move-out, so the second set of photos is what makes the first ones worth taking —
+        and it is months away.
+      </p>
+      <button type="button" className="btn btn-ghost" onClick={handleDownload}>
+        Add a calendar reminder for{" "}
+        {reminder.remindOn.toLocaleDateString([], { month: "long", day: "numeric" })}
+      </button>
+      {status && (
+        <p className="status-line" data-tone={status.tone} role="status" aria-live="polite">
+          {status.message}
+        </p>
+      )}
+    </div>
   );
 }

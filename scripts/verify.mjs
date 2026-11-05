@@ -159,6 +159,9 @@ async function seed(page) {
       rec.property.school = "Arizona State University";
       rec.property.communityName = "The Standard at College Ave";
       rec.property.address = "123 E College Ave, Unit 4B, Tempe AZ";
+      // Dates present so the calendar reminder offer renders and is checked.
+      rec.property.moveInDate = "2026-08-15";
+      rec.property.moveOutDate = "2027-05-28";
       localStorage.setItem("casa-check:record", JSON.stringify(rec));
     }
   });

@@ -66,7 +66,6 @@ src/
     base.css            reset, typography, form + button primitives
     layout.css          app shell and the mobile reflow
     components.css      cards, photo grid, toggles, panels
-legacy/casa-check.html  the original single-file prototype, for reference
 ```
 
 ## How storage works

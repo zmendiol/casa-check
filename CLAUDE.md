@@ -124,8 +124,9 @@ layout, or the overall structure without asking.
 All colours live in `src/styles/tokens.css`; edit them there and nowhere
 else. Teal means move-in / original condition, amber means move-out / later —
 used consistently on the room counts and the compare columns. Class names
-match the original prototype (kept at `legacy/casa-check.html`) so visual
-drift is easy to spot.
+match the original prototype so visual drift is easy to spot. The prototype
+itself was removed once it had served that purpose; `git show 93d7b79` still
+has it if a class name ever needs checking against the original.
 
 `npm run verify` covers both widths. Several regressions this project has had
 only appeared at one: a sidebar badge wrapped its label on desktop but not
