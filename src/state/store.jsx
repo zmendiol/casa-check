@@ -304,14 +304,16 @@ const BACKUP_DRIFT = 8;
 
 export function backupIsStale(backup, totalPhotos) {
   if (totalPhotos === 0) return false;
-  if (backup.atPhotoCount === null) return true;
+  // `== null` deliberately: a restored or hand-edited ui key can carry an
+  // absent field, and `undefined + 8` is NaN, which silences the prompt.
+  if (backup?.atPhotoCount == null) return true;
   return totalPhotos >= backup.atPhotoCount + BACKUP_DRIFT;
 }
 
 /** The nudge stays quiet until the record grows past where it was dismissed. */
 export function backupNudgeVisible(backup, totalPhotos) {
   if (!backupIsStale(backup, totalPhotos)) return false;
-  if (backup.dismissedAtPhotoCount === null) return true;
+  if (backup?.dismissedAtPhotoCount == null) return true;
   return totalPhotos >= backup.dismissedAtPhotoCount + BACKUP_DRIFT;
 }
 

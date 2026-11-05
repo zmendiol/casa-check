@@ -1,5 +1,5 @@
 import { MODE_KEYS } from "./constants.js";
-import { parseDeadlineDays, responseDue } from "./deadline.js";
+import { parseDeadlineDays, parseLocalDate, responseDue } from "./deadline.js";
 import { saveFile } from "./download.js";
 import { blobToDataUrl, TIMESTAMP_SOURCES } from "./images.js";
 import { getPhotoBlob } from "../state/storage.js";
@@ -278,10 +278,10 @@ function fit(w, h, boxW, boxH) {
 
 /** yyyy-mm-dd from a date input, read back the way a person writes it. */
 function coverDate(value) {
-  if (!value) return "";
-  const [y, m, d] = value.split("-").map(Number);
-  if (!y || !m || !d) return value;
-  return new Date(y, m - 1, d).toLocaleDateString([], { dateStyle: "long" });
+  const date = parseLocalDate(value);
+  // An unparseable date is shown as typed rather than dropped: on a report,
+  // something visibly odd beats a blank where a date should be.
+  return date ? date.toLocaleDateString([], { dateStyle: "long" }) : value || "";
 }
 
 function formatStamp(timestamp) {

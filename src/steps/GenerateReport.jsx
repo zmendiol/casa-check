@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { DataPanel } from "../components/DataPanel.jsx";
 import { MODE_KEYS } from "../lib/constants.js";
+import { parseLocalDate } from "../lib/deadline.js";
 import { generateReport } from "../lib/pdf.js";
 import { countPhotos, useStore } from "../state/store.jsx";
 
@@ -42,9 +43,8 @@ function buildManifest(property, rooms) {
   // Greenwich.
   const readableDate = (value) => {
     if (!value) return null;
-    const [y, m, d] = value.split("-").map(Number);
-    if (!y || !m || !d) return value;
-    return new Date(y, m - 1, d).toLocaleDateString([], { dateStyle: "long" });
+    const date = parseLocalDate(value);
+    return date ? date.toLocaleDateString([], { dateStyle: "long" }) : value;
   };
 
   return [

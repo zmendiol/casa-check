@@ -30,6 +30,34 @@ export function parseDeadlineDays(value) {
 
 export const MAX_DEADLINE_DAYS = 365;
 
+/**
+ * Parses yyyy-mm-dd into a local Date, or null if it is not a real date.
+ *
+ * Two traps, both of which were live in four separate copies of this code:
+ *
+ *   Parsing the string directly gives UTC midnight, which is the previous day
+ *   west of Greenwich — so a move-out date could read as a day early.
+ *
+ *   `new Date(2027, 12, 45)` does not fail. It rolls forward into 2028, so an
+ *   impossible date from a restored backup produced a plausible-looking
+ *   number instead of nothing. Comparing the parts back against the input is
+ *   what catches it.
+ */
+export function parseLocalDate(value) {
+  if (typeof value !== "string") return null;
+
+  const [y, m, d] = value.split("-").map(Number);
+  if (!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(d)) return null;
+
+  const date = new Date(y, m - 1, d);
+  if (Number.isNaN(date.getTime())) return null;
+
+  // Rollover check: 13 months or 45 days would otherwise pass silently.
+  if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) return null;
+
+  return date;
+}
+
 /** Weekend-aware, because "business days" is the common statutory wording. */
 export function addBusinessDays(start, days) {
   const date = new Date(start.getTime());
@@ -58,12 +86,8 @@ export function responseDue(moveOutDate, days, basis) {
   const n = parseDeadlineDays(days);
   if (!moveOutDate || n === null) return null;
 
-  // Date inputs are yyyy-mm-dd; parsing that directly yields UTC midnight,
-  // which can land on the previous day west of Greenwich. Build it locally.
-  const [y, m, d] = moveOutDate.split("-").map(Number);
-  if (!y || !m || !d) return null;
-  const start = new Date(y, m - 1, d);
-  if (Number.isNaN(start.getTime())) return null;
+  const start = parseLocalDate(moveOutDate);
+  if (!start) return null;
 
   return {
     due: basis === "calendar" ? addCalendarDays(start, n) : addBusinessDays(start, n),
@@ -77,12 +101,8 @@ export function responseDue(moveOutDate, days, basis) {
  * "is it today" check come out as yesterday.
  */
 export function daysUntil(dateStr) {
-  if (!dateStr) return null;
-  const [y, m, d] = dateStr.split("-").map(Number);
-  if (!y || !m || !d) return null;
-
-  const target = new Date(y, m - 1, d);
-  if (Number.isNaN(target.getTime())) return null;
+  const target = parseLocalDate(dateStr);
+  if (!target) return null;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
