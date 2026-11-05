@@ -71,6 +71,24 @@ export function responseDue(moveOutDate, days, basis) {
   };
 }
 
+/**
+ * Whole days from today to a yyyy-mm-dd date. Negative once it has passed.
+ * Both ends are normalised to local midnight so a time of day cannot make an
+ * "is it today" check come out as yesterday.
+ */
+export function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  const [y, m, d] = dateStr.split("-").map(Number);
+  if (!y || !m || !d) return null;
+
+  const target = new Date(y, m - 1, d);
+  if (Number.isNaN(target.getTime())) return null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((target - today) / 86400000);
+}
+
 /** Public holidays are not modelled, so the figure is a floor, not a promise. */
 export const DEADLINE_CAVEAT =
   "Weekends are excluded from business-day counts; public holidays are not, so treat this as the earliest date rather than an exact one.";

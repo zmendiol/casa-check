@@ -267,6 +267,28 @@ export async function requestPersistentStorage() {
 }
 
 /**
+ * Asks again, once, after the user has done something worth keeping.
+ *
+ * Browsers weigh engagement when deciding whether to grant persistence, and
+ * the startup request is made before there is any. Asking again after the
+ * first photos land is both more likely to succeed and more honest about
+ * what is being protected. Cheap when already granted: persisted() short
+ * circuits before any prompt.
+ */
+let reRequested = false;
+export async function ensurePersistentStorage() {
+  if (reRequested) return null;
+  reRequested = true;
+  try {
+    if (!navigator.storage?.persist) return null;
+    if (await navigator.storage.persisted()) return true;
+    return await navigator.storage.persist();
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Reads whether storage is already persistent WITHOUT requesting it.
  *
  * `persist()` is a permission request that prompts in some browsers, so it

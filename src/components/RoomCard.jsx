@@ -5,7 +5,7 @@ import { PhotoViewer } from "./PhotoViewer.jsx";
 import { recommendedLanes } from "../lib/encodeWorker.js";
 import { preparePhoto } from "../lib/images.js";
 import { uid } from "../lib/uid.js";
-import { deletePhotoBlob, putPhotoBlob } from "../state/storage.js";
+import { deletePhotoBlob, ensurePersistentStorage, putPhotoBlob } from "../state/storage.js";
 import { useStore } from "../state/store.jsx";
 
 export function RoomCard({ room, mode, canRemove }) {
@@ -87,6 +87,10 @@ export function RoomCard({ room, mode, canRemove }) {
 
     await Promise.all(Array.from({ length: Math.min(LANES, files.length) }, lane));
     drain();
+
+    // Now that there is something worth keeping, ask the browser to stop
+    // treating this data as disposable. Harmless if already granted.
+    if (timings.length > 0) ensurePersistentStorage();
 
     // Where the time actually went. Reported so a slow device can say what is
     // slow about it, instead of us guessing from a fast one.

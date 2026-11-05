@@ -716,3 +716,46 @@
   color: var(--muted);
   margin-top: 6px;
 }
+
+/* ---------- Prompts that ask for an action ----------
+   Two of these exist: back up now, and start the move-out pass. Both appear
+   only in a narrow, genuinely time-critical window, so they are allowed to
+   look like something to act on rather than something to read past. */
+
+.backup-nudge,
+.moveout-reminder {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+
+/* Teal reads as the ordinary state of things; amber as the clock running. */
+.backup-nudge { border-color: var(--line); }
+.moveout-reminder { border-color: var(--amber); background: #FDF8EF; }
+
+.backup-nudge-text {
+  flex: 1 1 280px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+  min-width: 0;
+}
+.backup-nudge-text strong { color: var(--ink); font-weight: 600; }
+
+.backup-nudge-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+@media (max-width: 720px) {
+  .backup-nudge-actions { width: 100%; }
+  .backup-nudge-actions .btn { flex: 1 1 auto; justify-content: center; }
+}

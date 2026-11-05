@@ -61,6 +61,8 @@ export function DataPanel() {
         setStatus({ tone: "muted", message: "Save cancelled — no backup was written." });
         return;
       }
+      // Only on a file actually written: a cancelled save protects nothing.
+      dispatch({ type: "BACKUP_TAKEN", photoCount: total });
       setStatus({
         tone: missing > 0 ? "error" : "success",
         message:

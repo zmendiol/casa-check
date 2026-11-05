@@ -83,10 +83,18 @@ function createInitialState() {
   const ui = loadUi() || {};
   const step = STEPS.some((s) => s.id === ui.step) ? ui.step : "setup";
   const mode = MODE_KEYS.includes(ui.mode) ? ui.mode : "moveIn";
+  // Device-local, so it lives with the UI state rather than the record: a
+  // backup taken on a phone says nothing about the laptop's copy.
+  const backup = {
+    atPhotoCount: Number.isInteger(ui.backup?.atPhotoCount) ? ui.backup.atPhotoCount : null,
+    dismissedAtPhotoCount: Number.isInteger(ui.backup?.dismissedAtPhotoCount)
+      ? ui.backup.dismissedAtPhotoCount
+      : null,
+  };
   // `upload` is transient and deliberately not persisted. It lives here rather
   // than in RoomCard so an import stays visible — and keeps running — when the
   // user wanders off to another step while waiting.
-  return { property, rooms, step, mode, upload: null, lastImport: null };
+  return { property, rooms, step, mode, backup, upload: null, lastImport: null };
 }
 
 /* ------------------------------------------------------------------ *
@@ -99,6 +107,12 @@ function mapRoom(state, roomId, fn) {
 
 export function reducer(state, action) {
   switch (action.type) {
+    case "BACKUP_TAKEN":
+      return { ...state, backup: { ...state.backup, atPhotoCount: action.photoCount } };
+
+    case "BACKUP_NUDGE_DISMISSED":
+      return { ...state, backup: { ...state.backup, dismissedAtPhotoCount: action.photoCount } };
+
     case "UPLOAD_START":
       return {
         ...state,
@@ -178,6 +192,7 @@ export function reducer(state, action) {
         step: "setup",
         mode: "moveIn",
         upload: null,
+        backup: { atPhotoCount: null, dismissedAtPhotoCount: null },
       };
 
     default:
@@ -220,8 +235,8 @@ export function StoreProvider({ children }) {
   }, [state.property, state.rooms]);
 
   useEffect(() => {
-    saveUi({ step: state.step, mode: state.mode });
-  }, [state.step, state.mode]);
+    saveUi({ step: state.step, mode: state.mode, backup: state.backup });
+  }, [state.step, state.mode, state.backup]);
 
   // One-time: move any pre-IndexedDB photo bytes into the blob store, then
   // sweep blobs no room references any more.
@@ -278,6 +293,26 @@ export function useStore() {
   const ctx = useContext(StoreContext);
   if (!ctx) throw new Error("useStore must be used inside <StoreProvider>.");
   return ctx;
+}
+
+/**
+ * Whether the record has moved on enough since the last backup to be worth
+ * another. Never backed up and holding photos counts; so does adding a
+ * walkthrough's worth of work on top of an old backup.
+ */
+const BACKUP_DRIFT = 8;
+
+export function backupIsStale(backup, totalPhotos) {
+  if (totalPhotos === 0) return false;
+  if (backup.atPhotoCount === null) return true;
+  return totalPhotos >= backup.atPhotoCount + BACKUP_DRIFT;
+}
+
+/** The nudge stays quiet until the record grows past where it was dismissed. */
+export function backupNudgeVisible(backup, totalPhotos) {
+  if (!backupIsStale(backup, totalPhotos)) return false;
+  if (backup.dismissedAtPhotoCount === null) return true;
+  return totalPhotos >= backup.dismissedAtPhotoCount + BACKUP_DRIFT;
 }
 
 /** Total photo count across every room and both passes. */

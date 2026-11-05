@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { BackupNudge } from "../components/BackupNudge.jsx";
 import { RoomCard } from "../components/RoomCard.jsx";
 import { MODES, MODE_KEYS } from "../lib/constants.js";
 import { useStore } from "../state/store.jsx";
@@ -40,6 +41,8 @@ export function PhotoWalkthrough() {
           </button>
         ))}
       </div>
+
+      <BackupNudge />
 
       {/* Two notes sharing one slot, so neither competes with the other: what
           to shoot before there are photos, and what not to do once there are. */}

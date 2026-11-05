@@ -1,5 +1,6 @@
 import { Sidebar } from "./components/Sidebar.jsx";
 import { StorageWarning } from "./components/StorageWarning.jsx";
+import { MoveOutReminder } from "./components/MoveOutReminder.jsx";
 import { UploadBanner } from "./components/UploadBanner.jsx";
 import { CompareRooms } from "./steps/CompareRooms.jsx";
 import { GenerateReport } from "./steps/GenerateReport.jsx";
@@ -27,6 +28,7 @@ export function App() {
       <main className="main">
         <div className="content">
           <StorageWarning />
+          <MoveOutReminder />
           <UploadBanner />
           <Screen />
         </div>
