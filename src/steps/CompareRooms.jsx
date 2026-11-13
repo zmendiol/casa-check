@@ -10,10 +10,19 @@ export function CompareRooms() {
   // so this screen opens full size too.
   const [viewing, setViewing] = useState(null);
 
+  // During the move-in pass every right-hand column is empty, which is correct
+  // and reads like failure. Say once, at the top, that the blank half is the
+  // part that has not happened yet rather than the part that went wrong.
+  const noMoveOutYet = state.rooms.every((room) => room.moveOut.length === 0);
+
   return (
     <>
       <h1 className="page-title">Compare rooms</h1>
-      <p className="page-sub">Move-in vs. move-out, side by side, room by room.</p>
+      <p className="page-sub">
+        Move-in vs. move-out, side by side, room by room.
+        {noMoveOutYet &&
+          " The move-out column fills in during your second walkthrough — that pairing is what the report argues from."}
+      </p>
 
       {state.rooms.map((room) => (
         <section className="room-section" key={room.id}>

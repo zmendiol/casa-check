@@ -4,6 +4,18 @@ import { RoomCard } from "../components/RoomCard.jsx";
 import { MODES, MODE_KEYS } from "../lib/constants.js";
 import { useStore } from "../state/store.jsx";
 
+/**
+ * "Bathroom", "Bedroom and Bathroom", "Living Room, Bedroom and Bathroom".
+ *
+ * Rooms are user-named and unbounded in number, so a long list is truncated
+ * rather than allowed to run down the page.
+ */
+function listNames(names) {
+  if (names.length > 4) return `${names.slice(0, 3).join(", ")} and ${names.length - 3} more`;
+  if (names.length === 1) return names[0];
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
 export function PhotoWalkthrough() {
   const { state, dispatch } = useStore();
   const [newRoom, setNewRoom] = useState("");
@@ -11,6 +23,13 @@ export function PhotoWalkthrough() {
   // True until this pass has its first photo. Guidance belongs where someone
   // is about to act, but only while they still need it.
   const passIsEmpty = state.rooms.every((room) => room[state.mode].length === 0);
+
+  // A half-documented apartment is worth very little, and the only place that
+  // currently says so is the report screen — which someone standing in a
+  // bedroom never opens. So the walkthrough states its own coverage: how many
+  // rooms are done, and which ones are not.
+  const remaining = state.rooms.filter((room) => room[state.mode].length === 0);
+  const covered = state.rooms.length - remaining.length;
 
   function addRoom() {
     const name = newRoom.trim();
@@ -41,6 +60,34 @@ export function PhotoWalkthrough() {
           </button>
         ))}
       </div>
+
+      {/* Not shown before the first photo: "0 of 4" tells someone who has only
+          just arrived nothing they do not know, and the capture hint below is
+          already doing the work at that point. One line, naming the rooms, in
+          place of an empty-state note repeated inside every empty card. */}
+      {!passIsEmpty && (
+        <p className="pass-progress" role="status">
+          {remaining.length === 0 ? (
+            <>
+              <strong>
+                {MODES[state.mode].label} walkthrough complete — all{" "}
+                {state.rooms.length === 1 ? "1 room" : `${state.rooms.length} rooms`}.
+              </strong>{" "}
+              {state.mode === "moveIn"
+                ? "Export a PDF from Generate report to keep a dated copy off this device, then come back when you move out."
+                : "Compare rooms puts the two passes side by side, and Generate report exports both."}
+            </>
+          ) : (
+            <>
+              <strong>
+                {covered} of {state.rooms.length} rooms
+              </strong>{" "}
+              photographed for {MODES[state.mode].label.toLowerCase()}. Nothing yet in{" "}
+              {listNames(remaining.map((room) => room.name))}.
+            </>
+          )}
+        </p>
+      )}
 
       <BackupNudge />
 

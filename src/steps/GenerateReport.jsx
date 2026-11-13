@@ -35,8 +35,36 @@ function buildManifest(property, rooms) {
   const moveIn = count("moveIn");
   const moveOut = count("moveOut");
   const roomsWithMoveIn = rooms.filter((r) => r.moveIn.length > 0).length;
+  const roomsWithMoveOut = rooms.filter((r) => r.moveOut.length > 0).length;
 
   const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+  // A photo count alone reads as finished when three of four rooms are empty,
+  // which is this app's most likely failure: a report that covers the kitchen
+  // and nothing else. Deductions are argued room by room, so the gap worth
+  // naming is an unphotographed room, not a thinly photographed one.
+  const coverage = (taken, roomsCovered, noneYet) => {
+    const empty = rooms.length - roomsCovered;
+    if (taken === 0) return { value: null, missing: noneYet };
+    if (empty === 0) {
+      return { value: `${plural(taken, "photo")} across all ${plural(rooms.length, "room")}`, missing: null };
+    }
+    return {
+      value: null,
+      missing: `${plural(taken, "photo")}, but ${empty} room${empty === 1 ? " has" : "s have"} none`,
+    };
+  };
+
+  const moveInCoverage = coverage(
+    moveIn,
+    roomsWithMoveIn,
+    "None yet — this is the evidence the report rests on"
+  );
+  const moveOutCoverage = coverage(
+    moveOut,
+    roomsWithMoveOut,
+    "None yet — add these when you move out"
+  );
 
   // Date inputs hand back yyyy-mm-dd; show it the way the rest of the screen
   // reads. Built locally rather than parsed as UTC, which slips a day west of
@@ -70,16 +98,17 @@ function buildManifest(property, rooms) {
     },
     {
       label: "Move-in photos",
-      value: moveIn ? `${plural(moveIn, "photo")} across ${plural(roomsWithMoveIn, "room")}` : null,
-      missing: "None yet — this is the evidence the report rests on",
+      ...moveInCoverage,
       step: "capture",
     },
     {
       label: "Move-out photos",
-      value: moveOut ? plural(moveOut, "photo") : null,
-      missing: "None yet — add these when you move out",
+      ...moveOutCoverage,
       step: "capture",
-      optional: true,
+      // Genuinely optional only until the second pass begins. Once it has, a
+      // pass that skipped rooms is a gap like any other — and it is the half
+      // that proves nothing changed.
+      optional: moveOut === 0,
     },
     {
       label: "Photo notes",

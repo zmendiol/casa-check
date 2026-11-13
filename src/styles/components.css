@@ -574,6 +574,22 @@
 }
 .capture-hint strong { color: var(--ink); font-weight: 600; }
 
+/* Coverage for the active pass. Deliberately a line of text and not a panel:
+   the walkthrough already carries a backup nudge and a capture hint, and a
+   third bordered box stacked above the first room is the exact regression
+   this project has had before. Weight and a rule carry it instead. */
+.pass-progress {
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: 68ch;
+  margin: 0 0 18px 0;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line-soft);
+  font-variant-numeric: tabular-nums;
+}
+.pass-progress strong { color: var(--ink); font-weight: 600; }
+
 /* ---------- Sidebar progress ---------- */
 
 .step-count {
